@@ -225,8 +225,19 @@ namespace PersonalCapital.Api {
             }
         }
 
+        #region Mapped Fetch/Get Api Methods
         public Task<FetchAccountsResponse> FetchAccounts(object data=null) {
-            return Fetch<FetchAccountsResponse>(@"newaccount\getAccounts");
+            return Fetch<FetchAccountsResponse>(@"newaccount\getAccounts", data);
         }
+        public Task<FetchCategoriesResponse> FetchCategories(object data = null) {
+            return Fetch<FetchCategoriesResponse>(@"transactioncategory\getCategories", data);
+        }
+        public Task<FetchUserMessagesResponse> FetchUserMessages(object data = null) {
+            return Fetch<FetchUserMessagesResponse>(@"message/getUserMessages", data);
+        }
+        public Task<FetchPersonResponse> FetchPerson(object data = null) {
+            return Fetch<FetchPersonResponse>(@"person/getPerson", data);
+        }
+        #endregion
     }
 }

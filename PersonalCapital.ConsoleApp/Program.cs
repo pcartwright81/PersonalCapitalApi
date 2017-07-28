@@ -79,7 +79,7 @@ namespace TestApplication {
                 var accountResponse = pcClient.FetchAccounts().GetAwaiter().GetResult();
                 Console.WriteLine($"Net Worth: {accountResponse.Data.Networth}");
                 foreach (var group in accountResponse.Data.Accounts.GroupBy(x=>x.ProductType)) {
-                    Console.WriteLine(group.Key.Replace('_',' ') + ":");
+                    Console.WriteLine(group.Key?.Replace('_',' ') + ":");
                     foreach (var account in group) {
                         Console.WriteLine($"    {account.UserAccountId} -> {account.Name}: ${account.Balance}");
                     }
