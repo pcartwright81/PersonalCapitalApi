@@ -7,7 +7,6 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Security.Authentication;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -227,7 +226,7 @@ namespace PersonalCapital.Api {
 
         #region Mapped Fetch/Get Api Methods
         public Task<FetchAccountsResponse> FetchAccounts(object data=null) {
-            return Fetch<FetchAccountsResponse>(@"newaccount\getAccounts", data);
+            return Fetch<FetchAccountsResponse>(@"newaccount\getAccounts2", data);
         }
         public Task<FetchCategoriesResponse> FetchCategories(object data = null) {
             return Fetch<FetchCategoriesResponse>(@"transactioncategory\getCategories", data);
@@ -237,6 +236,9 @@ namespace PersonalCapital.Api {
         }
         public Task<FetchPersonResponse> FetchPerson(object data = null) {
             return Fetch<FetchPersonResponse>(@"person/getPerson", data);
+        }
+        public Task<FetchUserTransactionsResponse> FetchUserTransactions(FetchUserTransactionsRequest data) {
+            return Fetch<FetchUserTransactionsResponse>(@"transaction/getUserTransactions", data);
         }
         #endregion
     }

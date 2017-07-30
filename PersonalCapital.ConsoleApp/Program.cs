@@ -4,6 +4,9 @@ using PersonalCapital.Exceptions;
 using System;
 using System.IO;
 using System.Linq;
+using Newtonsoft.Json;
+using PersonalCapital.Request;
+using TestApplication.Extensions;
 
 namespace TestApplication {
     internal class Program {
@@ -17,8 +20,7 @@ namespace TestApplication {
             }
 
             // Get password from vault
-            const string target = "personalcapital";
-            var password = GetPasswordFromVault(target, username);
+            var password = GetPasswordFromVault(Settings.KeystoreTarget, username);
             if (password == null) {
                 // Get password from the console
                 Console.Write("Password: ");
@@ -30,7 +32,7 @@ namespace TestApplication {
 
             using (var pcClient = new PersonalCapitalClient()) {
                 try {
-                    // Restore session from the file configured and it exists
+                    // Restore session from the file configured if it exists
                     if (Settings.SessionFile != null && File.Exists(Settings.SessionFile)) {
                         Console.WriteLine($"Restoring session from {Settings.SessionFile}");
                         pcClient.RestoreSession(Settings.SessionFile);
@@ -84,6 +86,13 @@ namespace TestApplication {
                         Console.WriteLine($"    {account.UserAccountId} -> {account.Name}: ${account.Balance}");
                     }
                 }
+                //Console.WriteLine();
+                //var transactionsResponse = pcClient.FetchUserTransactions(new FetchUserTransactionsRequest(DateTime.Today.AddDays(-7), DateTime.Today)).GetAwaiter().GetResult();
+                //Console.WriteLine($"Net Cash Flow: {transactionsResponse.Data.NetCashflow}");
+                //Console.WriteLine($"Date Range: {transactionsResponse.Data.StartDate} - {transactionsResponse.Data.EndDate}");
+                //foreach (var tx in transactionsResponse.Data.Transactions.Where(x=>x.IsSpending)) {
+                //    Console.WriteLine($"{tx.SimpleDescription.WhenNullOrEmpty(tx.TransactionType)} : ${tx.Amount}");
+                //}
             }
             Pause();
         }

@@ -7,7 +7,7 @@ namespace PersonalCapital.Response {
         public decimal CreditCardAccountsTotal { get; set; }
 
         [JsonProperty(PropertyName = "assets")]
-        public decimal Aassets { get; set; }
+        public decimal Assets { get; set; }
 
         [JsonProperty(PropertyName = "otherLiabilitiesAccountsTotal")]
         public decimal OtherLiabilitiesAccountsTotal { get; set; }

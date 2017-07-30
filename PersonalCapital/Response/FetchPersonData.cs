@@ -111,7 +111,7 @@ namespace PersonalCapital.Response {
         public string TargetPortfolioSource { get; set; }
 
         [JsonProperty(PropertyName = "targetPortfolioAccuracy")]
-        public double TargetPortfolioAccuracy { get; set; }
+        public decimal TargetPortfolioAccuracy { get; set; }
 
         [JsonProperty(PropertyName = "targetPortfolioDetermined")]
         public bool TargetPortfolioDetermined { get; set; }
@@ -153,10 +153,10 @@ namespace PersonalCapital.Response {
         public string SecAffiliatedPersonFullName { get; set; }
 
         [JsonProperty(PropertyName = "userInputIncomeValue")]
-        public double UserInputIncomeValue { get; set; }
+        public decimal UserInputIncomeValue { get; set; }
 
         [JsonProperty(PropertyName = "age")]
-        public double Age { get; set; }
+        public decimal Age { get; set; }
 
         [JsonProperty(PropertyName = "userRiskTolerance")]
         public string UserRiskTolerance { get; set; }
@@ -204,9 +204,9 @@ namespace PersonalCapital.Response {
         public string CalculatedValuePreference { get; set; }
 
         [JsonProperty(PropertyName = "userInputNetworth")]
-        public double UserInputNetworth { get; set; }
+        public decimal UserInputNetworth { get; set; }
 
         [JsonProperty(PropertyName = "netWorth")]
-        public double NetWorth { get; set; }
+        public decimal NetWorth { get; set; }
     }
 }

@@ -14,5 +14,11 @@ namespace TestApplication {
                 return string.IsNullOrEmpty(sessionFile) ? null : sessionFile;
             }
         }
+        public static string KeystoreTarget {
+            get {
+                var keystoreTarget = ConfigurationManager.AppSettings["keystoreTarget"];
+                return string.IsNullOrEmpty(keystoreTarget) ? null : keystoreTarget;
+            }
+        }
     }
 }
