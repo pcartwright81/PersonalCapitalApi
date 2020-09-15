@@ -1,5 +1,4 @@
-﻿using CredentialManagement;
-using PersonalCapital.Api;
+﻿using PersonalCapital.Api;
 using PersonalCapital.Exceptions;
 using System;
 using System.IO;
@@ -10,9 +9,11 @@ using TestApplication.Extensions;
 
 namespace TestApplication {
     internal class Program {
-        private static void Main(string[] args) {
+        private static void Main(string[] args)
+        {
+            var file = "sessionFile";
             // Get username from settings
-            var username = Settings.Username;
+            var username = Environment.GetEnvironmentVariable("PEW_EMAIL");
             if (username == null) {
                 Console.WriteLine("Set the username in the appSettings section of the app.config");
                 Pause();
@@ -20,7 +21,7 @@ namespace TestApplication {
             }
 
             // Get password from vault
-            var password = GetPasswordFromVault(Settings.KeystoreTarget, username);
+            var password = Environment.GetEnvironmentVariable("PEW_PASSWORD");
             if (password == null) {
                 // Get password from the console
                 Console.Write("Password: ");
@@ -33,9 +34,9 @@ namespace TestApplication {
             using (var pcClient = new PersonalCapitalClient()) {
                 try {
                     // Restore session from the file configured if it exists
-                    if (Settings.SessionFile != null && File.Exists(Settings.SessionFile)) {
-                        Console.WriteLine($"Restoring session from {Settings.SessionFile}");
-                        pcClient.RestoreSession(Settings.SessionFile);
+                    if (File.Exists(file)) {
+                        Console.WriteLine($"Restoring session from {file}");
+                        pcClient.RestoreSession(file);
                     }
                     // Attempt to login; successful if no exceptions are thrown
                     pcClient.Login(username, password).GetAwaiter().GetResult();
@@ -60,9 +61,7 @@ namespace TestApplication {
                         var result = pcClient.AuthenticatePassword(password).GetAwaiter().GetResult();
                         if (result.Header.AuthLevel == Constants.AuthLevel.SessionAuthenticated) {
                             Console.WriteLine("Logged in Successfully");
-                            if (Settings.SessionFile != null) {
-                                pcClient.PersistSession(Settings.SessionFile);
-                            }
+                            pcClient.PersistSession(file);
                         }
                     }
                     else {
@@ -104,20 +103,6 @@ namespace TestApplication {
             Console.WriteLine();
             Console.Write("Press any key to continue...");
             Console.ReadKey(true);
-        }
-
-        /// <summary>
-        /// Gets the password from the credential vault for the associated username and target
-        /// </summary>
-        /// <param name="target"></param>
-        /// <param name="username"></param>
-        /// <returns></returns>
-        private static string GetPasswordFromVault(string target, string username) {
-            using (var cred = new Credential()) {
-                cred.Target = target;
-                cred.Load();
-                return cred.Username == username ? cred.Password : null;
-            }
         }
     }
 }
