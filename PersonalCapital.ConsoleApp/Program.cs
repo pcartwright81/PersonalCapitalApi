@@ -85,13 +85,14 @@ namespace TestApplication {
                         Console.WriteLine($"    {account.UserAccountId} -> {account.Name}: ${account.Balance}");
                     }
                 }
-                //Console.WriteLine();
-                //var transactionsResponse = pcClient.FetchUserTransactions(new FetchUserTransactionsRequest(DateTime.Today.AddDays(-7), DateTime.Today)).GetAwaiter().GetResult();
-                //Console.WriteLine($"Net Cash Flow: {transactionsResponse.Data.NetCashflow}");
-                //Console.WriteLine($"Date Range: {transactionsResponse.Data.StartDate} - {transactionsResponse.Data.EndDate}");
-                //foreach (var tx in transactionsResponse.Data.Transactions.Where(x=>x.IsSpending)) {
-                //    Console.WriteLine($"{tx.SimpleDescription.WhenNullOrEmpty(tx.TransactionType)} : ${tx.Amount}");
-                //}
+                Console.WriteLine();
+                var transactionsResponse = pcClient.FetchUserTransactions(new FetchUserTransactionsRequest(DateTime.Today.AddDays(-7), DateTime.Today)).GetAwaiter().GetResult();
+                Console.WriteLine($"Net Cash Flow: {transactionsResponse.Data.NetCashflow}");
+                Console.WriteLine($"Date Range: {transactionsResponse.Data.StartDate} - {transactionsResponse.Data.EndDate}");
+                foreach (var tx in transactionsResponse.Data.Transactions.Where(x => x.IsSpending))
+                {
+                    Console.WriteLine($"{tx.SimpleDescription.WhenNullOrEmpty(tx.TransactionType)} : ${tx.Amount}");
+                }
             }
             Pause();
         }
