@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class Account {
+namespace PersonalCapital.Response
+{
+    public class Account
+    {
         [JsonProperty(PropertyName = "priorBalance")]
         public decimal PriorBalance { get; set; }
 
@@ -17,8 +19,7 @@ namespace PersonalCapital.Response {
         [JsonProperty(PropertyName = "userAccountId")]
         public long UserAccountId { get; set; }
 
-        [JsonProperty(PropertyName = "name")]
-        public string Name { get; set; }
+        [JsonProperty(PropertyName = "name")] public string Name { get; set; }
 
         [JsonProperty(PropertyName = "firmName")]
         public string FirmName { get; set; }
@@ -45,6 +46,7 @@ namespace PersonalCapital.Response {
         public string OriginalFirmName { get; set; }
 
         #region CREDIT
+
         [JsonProperty(PropertyName = "lastPayment")]
         public decimal LastPayment { get; set; }
 
@@ -56,6 +58,7 @@ namespace PersonalCapital.Response {
 
         [JsonProperty(PropertyName = "creditLimit")]
         public decimal CreditLimit { get; set; }
+
         #endregion
     }
 }

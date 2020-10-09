@@ -1,8 +1,16 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class Transaction {
+namespace PersonalCapital.Response
+{
+    public class Transaction
+    {
+        //Original amount might be "NaN" which is mapped to Null
+        private decimal? _originalAmount;
+
+        private string _originalAmountString;
+
         [JsonProperty(PropertyName = "symbol")]
         public string Symbol { get; set; }
 
@@ -12,7 +20,10 @@ namespace PersonalCapital.Response {
         [JsonProperty(PropertyName = "netCost")]
         public decimal NetCost { get; set; }
 
+        // ReSharper disable StringLiteralTypo
         [JsonProperty(PropertyName = "cusipNumber")]
+        [SuppressMessage("ReSharper", "IdentifierTypo")]
+        // ReSharper restore StringLiteralTypo
         public string CusipNumber { get; set; }
 
         [JsonProperty(PropertyName = "accountName")]
@@ -21,8 +32,7 @@ namespace PersonalCapital.Response {
         [JsonProperty(PropertyName = "description")]
         public string Description { get; set; }
 
-        [JsonProperty(PropertyName = "memo")]
-        public string Memo { get; set; }
+        [JsonProperty(PropertyName = "memo")] public string Memo { get; set; }
 
         [JsonProperty(PropertyName = "isCredit")]
         public bool IsCredit { get; set; }
@@ -36,8 +46,7 @@ namespace PersonalCapital.Response {
         [JsonProperty(PropertyName = "merchantId")]
         public string MerchantId { get; set; }
 
-        [JsonProperty(PropertyName = "price")]
-        public decimal Price { get; set; }
+        [JsonProperty(PropertyName = "price")] public decimal Price { get; set; }
 
         [JsonProperty(PropertyName = "holdingType")]
         public string HoldingType { get; set; }
@@ -78,8 +87,7 @@ namespace PersonalCapital.Response {
         [JsonProperty(PropertyName = "merchant")]
         public string Merchant { get; set; }
 
-        [JsonProperty(PropertyName = "isNew")]
-        public bool IsNew { get; set; }
+        [JsonProperty(PropertyName = "isNew")] public bool IsNew { get; set; }
 
         [JsonProperty(PropertyName = "isCashIn")]
         public bool IsCashIn { get; set; }
@@ -93,32 +101,28 @@ namespace PersonalCapital.Response {
         [JsonProperty(PropertyName = "accountId")]
         public string AccountId { get; set; }
 
-        private string originalAmountString;
         [JsonProperty(PropertyName = "originalAmount")]
-        public string OriginalAmountString {
-            get { return originalAmountString; }
-            set {
-                originalAmountString = value;
+        public string OriginalAmountString
+        {
+            get => _originalAmountString;
+            set
+            {
+                _originalAmountString = value;
                 // Parse to decimal as originalAmount, otherwise set to null
-                decimal decimalValue;
-                if (decimal.TryParse(value, out decimalValue)) {
-                    originalAmount = decimalValue;
-                }
-                else {
-                    originalAmount = null;
-                }
+                if (decimal.TryParse(value, out var decimalValue))
+                    _originalAmount = decimalValue;
+                else
+                    _originalAmount = null;
             }
         }
 
-        //Original amount might be "NaN" which is mapped to Null
-        private decimal? originalAmount;
-        public decimal? OriginalAmount {
-            get {
-                return originalAmount;
-            }
-            set {
-                originalAmount = value;
-                originalAmountString = value?.ToString();
+        public decimal? OriginalAmount
+        {
+            get => _originalAmount;
+            set
+            {
+                _originalAmount = value;
+                _originalAmountString = value?.ToString();
             }
         }
 

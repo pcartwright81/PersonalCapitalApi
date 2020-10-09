@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class FetchUserMessagesData {
+namespace PersonalCapital.Response
+{
+    public class FetchUserMessagesData
+    {
         [JsonProperty(PropertyName = "userMessages")]
         public List<UserMessageData> UserMessages { get; set; }
 

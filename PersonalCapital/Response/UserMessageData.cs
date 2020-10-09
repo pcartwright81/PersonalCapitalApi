@@ -1,9 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class UserMessageData {
+namespace PersonalCapital.Response
+{
+    public class UserMessageData
+    {
         [JsonProperty(PropertyName = "template")]
         public string Template { get; set; }
 
@@ -22,8 +23,7 @@ namespace PersonalCapital.Response {
         //[JsonProperty(PropertyName = "resources")]
         //public List<?> Resources { get; set; }
 
-        [JsonProperty(PropertyName = "title")]
-        public string Title { get; set; }
+        [JsonProperty(PropertyName = "title")] public string Title { get; set; }
 
         [JsonProperty(PropertyName = "userMessageId")]
         public int UserMessageId { get; set; }

@@ -1,9 +1,10 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class HeaderResponse {
-
+namespace PersonalCapital.Response
+{
+    public class HeaderResponse
+    {
         [JsonProperty(PropertyName = "status")]
         public string Status { get; set; }
 
@@ -31,8 +32,7 @@ namespace PersonalCapital.Response {
         [JsonProperty(PropertyName = "authLevel")]
         public string AuthLevel { get; set; }
 
-        [JsonProperty(PropertyName = "csrf")]
-        public string Csrf { get; set; }
+        [JsonProperty(PropertyName = "csrf")] public string Csrf { get; set; }
 
         [JsonProperty(PropertyName = "errors")]
         public List<ErrorInfoResponse> Errors { get; set; }

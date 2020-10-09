@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class IdentifyUserDataResponse {
+namespace PersonalCapital.Response
+{
+    public class IdentifyUserDataResponse
+    {
         [JsonProperty(PropertyName = "credentials")]
         public List<string> Credentials { get; set; }
 

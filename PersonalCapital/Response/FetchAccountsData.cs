@@ -1,8 +1,10 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class FetchAccountsData {
+namespace PersonalCapital.Response
+{
+    public class FetchAccountsData
+    {
         [JsonProperty(PropertyName = "creditCardAccountsTotal")]
         public decimal CreditCardAccountsTotal { get; set; }
 

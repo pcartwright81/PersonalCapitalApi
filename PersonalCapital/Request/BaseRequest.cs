@@ -1,9 +1,20 @@
 ﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Request {
-    public class BaseRequest {
-        [JsonProperty(PropertyName = "csrf")]
-        public string Csrf { get; set; }
+namespace PersonalCapital.Request
+{
+    public class BaseRequest
+    {
+        public BaseRequest()
+        {
+            ReferrerId = string.Empty;
+            BindDevice = "false";
+            SkipLinkAccount = "false";
+            RedirectTo = string.Empty;
+            SkipFirstUse = string.Empty;
+            ApiClient = "WEB";
+        }
+
+        [JsonProperty(PropertyName = "csrf")] public string Csrf { get; set; }
 
         [JsonProperty(PropertyName = "apiClient")]
         public string ApiClient { get; set; }
@@ -22,14 +33,5 @@ namespace PersonalCapital.Request {
 
         [JsonProperty(PropertyName = "referrerId")]
         public string ReferrerId { get; set; }
-
-        public BaseRequest() {
-            ReferrerId = string.Empty;
-            BindDevice = "false";
-            SkipLinkAccount = "false";
-            RedirectTo = string.Empty;
-            SkipFirstUse = string.Empty;
-            ApiClient = "WEB";
-        }
     }
 }

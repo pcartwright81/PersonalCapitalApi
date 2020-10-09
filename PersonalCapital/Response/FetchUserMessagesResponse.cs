@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class FetchUserMessagesResponse {
+namespace PersonalCapital.Response
+{
+    public class FetchUserMessagesResponse
+    {
         [JsonProperty(PropertyName = "spHeader")]
         public HeaderResponse Header { get; set; }
 

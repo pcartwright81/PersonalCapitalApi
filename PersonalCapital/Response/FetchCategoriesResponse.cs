@@ -1,8 +1,10 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class FetchCategoriesResponse {
+namespace PersonalCapital.Response
+{
+    public class FetchCategoriesResponse
+    {
         [JsonProperty(PropertyName = "spHeader")]
         public HeaderResponse Header { get; set; }
 

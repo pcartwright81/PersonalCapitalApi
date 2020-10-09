@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Request {
-    public class TwoFactorChallengeRequest : BaseRequest {
+namespace PersonalCapital.Request
+{
+    public class TwoFactorChallengeRequest : BaseRequest
+    {
         [JsonProperty(PropertyName = "challengeReason")]
         public string ChallengeReason { get; set; }
 

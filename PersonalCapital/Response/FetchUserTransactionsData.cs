@@ -1,8 +1,10 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class FetchUserTransactionsData {
+namespace PersonalCapital.Response
+{
+    public class FetchUserTransactionsData
+    {
         [JsonProperty(PropertyName = "intervalType")]
         public string IntervalType { get; set; }
 

@@ -1,11 +1,19 @@
-﻿namespace PersonalCapital.Api {
-    public static class Constants {
-        public static class Status {
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace PersonalCapital.Api
+{
+    [SuppressMessage("ReSharper", "UnusedMember.Global")]
+    public static class Constants
+    {
+        public static class Status
+        {
             public const string Active = "ACTIVE";
             public const string Inactive = "INACTIVE";
         }
 
-        public static class AuthLevel {
+        [SuppressMessage("ReSharper", "UnusedMember.Global")]
+        public static class AuthLevel
+        {
             public const string None = "NONE";
             public const string UserIdentified = "USER_IDENTIFIED";
             public const string UserRemembered = "USER_REMEMBERED";

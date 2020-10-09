@@ -1,15 +1,14 @@
 ﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Response {
-    public class FetchPersonData {
-        [JsonProperty(PropertyName = "id")]
-        public long Id { get; set; }
+namespace PersonalCapital.Response
+{
+    public class FetchPersonData
+    {
+        [JsonProperty(PropertyName = "id")] public long Id { get; set; }
 
-        [JsonProperty(PropertyName = "phone")]
-        public string Phone { get; set; }
+        [JsonProperty(PropertyName = "phone")] public string Phone { get; set; }
 
-        [JsonProperty(PropertyName = "name")]
-        public PersonName Name { get; set; }
+        [JsonProperty(PropertyName = "name")] public PersonName Name { get; set; }
 
         [JsonProperty(PropertyName = "birthday")]
         public PersonDate Birthday { get; set; }
@@ -155,8 +154,7 @@ namespace PersonalCapital.Response {
         [JsonProperty(PropertyName = "userInputIncomeValue")]
         public decimal UserInputIncomeValue { get; set; }
 
-        [JsonProperty(PropertyName = "age")]
-        public decimal Age { get; set; }
+        [JsonProperty(PropertyName = "age")] public decimal Age { get; set; }
 
         [JsonProperty(PropertyName = "userRiskTolerance")]
         public string UserRiskTolerance { get; set; }
@@ -168,7 +166,8 @@ namespace PersonalCapital.Response {
         public string CountryCode { get; set; }
     }
 
-    public class PersonName {
+    public class PersonName
+    {
         [JsonProperty(PropertyName = "firstName")]
         public string FirstName { get; set; }
 
@@ -185,21 +184,19 @@ namespace PersonalCapital.Response {
         public string LastName { get; set; }
     }
 
-    public class PersonDate {
-        [JsonProperty(PropertyName = "year")]
-        public string Year { get; set; }
+    public class PersonDate
+    {
+        [JsonProperty(PropertyName = "year")] public string Year { get; set; }
 
-        [JsonProperty(PropertyName = "month")]
-        public string Month { get; set; }
+        [JsonProperty(PropertyName = "month")] public string Month { get; set; }
 
-        [JsonProperty(PropertyName = "day")]
-        public string Day { get; set; }
+        [JsonProperty(PropertyName = "day")] public string Day { get; set; }
 
-        [JsonProperty(PropertyName = "empty")]
-        public bool Empty { get; set; }
+        [JsonProperty(PropertyName = "empty")] public bool Empty { get; set; }
     }
 
-    public class PersonNetworth {
+    public class PersonNetworth
+    {
         [JsonProperty(PropertyName = "calculatedValuePreference")]
         public string CalculatedValuePreference { get; set; }
 
