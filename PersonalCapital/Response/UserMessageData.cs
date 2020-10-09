@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
+using PersonalCapital.Extensions;
 
 namespace PersonalCapital.Response
 {
@@ -11,11 +13,13 @@ namespace PersonalCapital.Response
         [JsonProperty(PropertyName = "summary")]
         public string Summary { get; set; }
 
-        //[JsonProperty(PropertyName = "updatedTime")]
-        //public DateTime UpdatedTime { get; set; }
+        [JsonConverter(typeof(UnixEpochConverter))]
+        [JsonProperty(PropertyName = "updatedTime", NullValueHandling = NullValueHandling.Ignore)]
+        public DateTime? UpdatedTime { get; set; }
 
-        //[JsonProperty(PropertyName = "lastViewedTime")]
-        //public DateTime LastViewedTime { get; set; }
+        [JsonConverter(typeof(UnixEpochConverter))]
+        [JsonProperty(PropertyName = "lastViewedTime", NullValueHandling = NullValueHandling.Ignore)]
+        public DateTime? LastViewedTime { get; set; }
 
         [JsonProperty(PropertyName = "isValid")]
         public bool IsValid { get; set; }
@@ -37,8 +41,9 @@ namespace PersonalCapital.Response
         [JsonProperty(PropertyName = "action")]
         public List<ActionData> Action { get; set; }
 
-        //[JsonProperty(PropertyName = "createdTime")]
-        //public DateTime CreatedTime { get; set; }
+        [JsonConverter(typeof(UnixEpochConverter))]
+        [JsonProperty(PropertyName = "createdTime", NullValueHandling = NullValueHandling.Ignore)]
+        public DateTime? CreatedTime { get; set; }
 
         [JsonProperty(PropertyName = "isStale")]
         public bool IsStale { get; set; }

@@ -77,6 +77,7 @@ namespace TestApplication {
                     return;
                 }
 
+                var usermessage = pcClient.FetchUserMessages().GetAwaiter().GetResult();
                 var accountResponse = pcClient.FetchAccounts().GetAwaiter().GetResult();
                 Console.WriteLine($"Net Worth: {accountResponse.Data.Networth}");
                 foreach (var group in accountResponse.Data.Accounts.GroupBy(x=>x.ProductType)) {
