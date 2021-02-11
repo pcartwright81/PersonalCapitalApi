@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
 
 namespace PersonalCapital.Response
@@ -22,7 +21,6 @@ namespace PersonalCapital.Response
 
         // ReSharper disable StringLiteralTypo
         [JsonProperty(PropertyName = "cusipNumber")]
-        [SuppressMessage("ReSharper", "IdentifierTypo")]
         // ReSharper restore StringLiteralTypo
         public string CusipNumber { get; set; }
 

@@ -14,7 +14,8 @@ using PersonalCapital.Response;
 
 namespace PersonalCapital.Api
 {
-    public class PersonalCapitalClient : IDisposable
+    [SuppressMessage("ReSharper", "UnusedMember.Global")]
+    public class PersonalCapitalClient :  IDisposable
     {
         private const string BaseUrl = "https://home.personalcapital.com/";
         private const string BaseApiUrl = BaseUrl + "api/";
@@ -38,7 +39,6 @@ namespace PersonalCapital.Api
             }
         }
 
-        [SuppressMessage("ReSharper", "IdentifierTypo")]
         public string Csrf { get; protected set; }
 
         public void Dispose()
@@ -228,13 +228,11 @@ namespace PersonalCapital.Api
 
         #region Mapped Fetch/Get Api Methods
 
-        [SuppressMessage("ReSharper", "StringLiteralTypo")]
         public Task<FetchAccountsResponse> FetchAccounts(object data = null)
         {
             return Fetch<FetchAccountsResponse>(@"newaccount\getAccounts2", data);
         }
 
-        [SuppressMessage("ReSharper", "StringLiteralTypo")]
         public Task<FetchCategoriesResponse> FetchCategories(object data = null)
         {
             return Fetch<FetchCategoriesResponse>(@"transactioncategory\getCategories", data);

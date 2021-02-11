@@ -3,13 +3,12 @@ using PersonalCapital.Exceptions;
 using System;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
 using PersonalCapital.Request;
 using TestApplication.Extensions;
 
 namespace TestApplication {
     internal class Program {
-        private static void Main(string[] args)
+        private static void Main()
         {
             var file = "sessionFile";
             // Get username from settings
@@ -78,6 +77,7 @@ namespace TestApplication {
                 }
 
                 var usermessage = pcClient.FetchUserMessages().GetAwaiter().GetResult();
+                usermessage.Data.UserMessages.ForEach(Console.WriteLine);
                 var accountResponse = pcClient.FetchAccounts().GetAwaiter().GetResult();
                 Console.WriteLine($"Net Worth: {accountResponse.Data.Networth}");
                 foreach (var group in accountResponse.Data.Accounts.GroupBy(x=>x.ProductType)) {
