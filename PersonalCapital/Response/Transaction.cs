@@ -147,5 +147,7 @@ namespace PersonalCapital.Response
 
         [JsonProperty(PropertyName = "status")]
         public string Status { get; set; }
+
+        public string DataProvider { get; set; } = "Personal Capital";
     }
 }

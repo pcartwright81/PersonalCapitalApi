@@ -22,5 +22,7 @@ namespace PersonalCapital.Response
         public string ShortDescription { get; set; }
 
         [JsonProperty(PropertyName = "type")] public string Type { get; set; }
+
+        public string DataProvider { get; set; } = "Personal Capital";
     }
 }

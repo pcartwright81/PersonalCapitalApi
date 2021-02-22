@@ -59,6 +59,8 @@ namespace PersonalCapital.Response
         [JsonProperty(PropertyName = "creditLimit")]
         public decimal CreditLimit { get; set; }
 
+        public string DataProvider { get; set; } = "Personal Capital";
+
         #endregion
     }
 }
