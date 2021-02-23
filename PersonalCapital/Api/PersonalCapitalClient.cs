@@ -251,7 +251,12 @@ namespace PersonalCapital.Api
         public Task<FetchUserTransactionsResponse> FetchUserTransactions(FetchUserTransactionsRequest data)
         {
             return Fetch<FetchUserTransactionsResponse>(@"transaction/getUserTransactions", data);
-        }        
+        }
+
+        public Task<UpdateTransactionResponse> UpdateTransaction(UpdateTransactionRequest data)
+        {
+            return Fetch<UpdateTransactionResponse>(@"transaction/updateUserTransactions2", data);
+        }
 
         #endregion
     }

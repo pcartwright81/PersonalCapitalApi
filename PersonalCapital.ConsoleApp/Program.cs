@@ -1,6 +1,7 @@
 ﻿using PersonalCapital.Api;
 using PersonalCapital.Exceptions;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using PersonalCapital.Request;
@@ -76,8 +77,18 @@ namespace TestApplication {
                     return;
                 }
 
+                var updateTransactionRequest = new UpdateTransactionRequest(new List<long>{9334839086}, 
+                    "Vanguard 529", 
+                    54, 
+                    false, 
+                    "");
+                var x = pcClient.UpdateTransaction(updateTransactionRequest).GetAwaiter().GetResult();
+                if (x.Data.Count > 0)
+                {
+                    Console.WriteLine("Updated Transaction Success");
+                }
                 var usermessage = pcClient.FetchUserMessages().GetAwaiter().GetResult();
-                usermessage.Data.UserMessages.ForEach(Console.WriteLine);
+                usermessage.Data.UserMessages.Select(c=>c.Summary).ToList().ForEach(Console.WriteLine);
                 var accountResponse = pcClient.FetchAccounts().GetAwaiter().GetResult();
                 Console.WriteLine($"Net Worth: {accountResponse.Data.Networth}");
                 foreach (var group in accountResponse.Data.Accounts.GroupBy(x=>x.ProductType)) {
