@@ -24,5 +24,10 @@ namespace PersonalCapital.Response
         [JsonProperty(PropertyName = "type")] public string Type { get; set; }
 
         public string DataProvider { get; set; } = "Personal Capital";
+
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 }

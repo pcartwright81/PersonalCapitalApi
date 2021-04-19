@@ -95,7 +95,7 @@ namespace PersonalCapital.Api
                 return null;
             }
         }
-
+               
         public async Task<IdentifyUserResponse> IdentifyUser(string username, string initialCsrf)
         {
             var data = new IdentifyUserRequest
@@ -256,6 +256,11 @@ namespace PersonalCapital.Api
         public Task<UpdateTransactionResponse> UpdateTransaction(UpdateTransactionRequest data)
         {
             return Fetch<UpdateTransactionResponse>(@"transaction/updateUserTransactions2", data);
+        }
+
+        public Task<BillReminderResponse> FetchBills()
+        {
+            return Fetch<BillReminderResponse>(@"account/getBillReminders", null);
         }
 
         #endregion

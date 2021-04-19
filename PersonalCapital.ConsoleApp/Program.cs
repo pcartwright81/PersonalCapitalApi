@@ -77,16 +77,17 @@ namespace TestApplication {
                     return;
                 }
 
-                var updateTransactionRequest = new UpdateTransactionRequest(new List<long>{9334839086}, 
-                    "Vanguard 529", 
-                    54, 
-                    false, 
-                    "");
-                var x = pcClient.UpdateTransaction(updateTransactionRequest).GetAwaiter().GetResult();
-                if (x.Data.Count > 0)
-                {
-                    Console.WriteLine("Updated Transaction Success");
-                }
+                var bills = pcClient.FetchBills().GetAwaiter().GetResult();
+                //var updateTransactionRequest = new UpdateTransactionRequest(new List<long>{9334839086}, 
+                //    "Vanguard 529", 
+                //    54, 
+                //    false, 
+                //    "");
+                //var x = pcClient.UpdateTransaction(updateTransactionRequest).GetAwaiter().GetResult();
+                //if (x.Data.Count > 0)
+                //{
+                //    Console.WriteLine("Updated Transaction Success");
+                //}
                 var usermessage = pcClient.FetchUserMessages().GetAwaiter().GetResult();
                 usermessage.Data.UserMessages.Select(c=>c.Summary).ToList().ForEach(Console.WriteLine);
                 var accountResponse = pcClient.FetchAccounts().GetAwaiter().GetResult();
