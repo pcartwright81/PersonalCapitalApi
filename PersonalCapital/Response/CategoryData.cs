@@ -2,7 +2,7 @@
 
 namespace PersonalCapital.Response
 {
-    public class CatagoryData
+    public class CategoryData
     {
         [JsonProperty(PropertyName = "isEditable")]
         public bool IsEditable { get; set; }

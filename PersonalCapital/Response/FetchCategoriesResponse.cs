@@ -9,6 +9,6 @@ namespace PersonalCapital.Response
         public HeaderResponse Header { get; set; }
 
         [JsonProperty(PropertyName = "spData")]
-        public List<CatagoryData> Data { get; set; }
+        public List<CategoryData> Data { get; set; }
     }
 }
