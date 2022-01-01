@@ -1,18 +1,13 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using PersonalCapital.Api;
-using PersonalCapital.Exceptions;
-using PersonalCapital.Request;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using TestApplication.Extensions;
-
-namespace TestApplication
+﻿namespace TestApplication
 {
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Logging;
+    using PersonalCapital.Api;
+    using PersonalCapital.Exceptions;
+    using PersonalCapital.Request;
+    using PersonalCapital.ConsoleApp.Extensions;
+
     internal class Program
     {
         private static void Initialize()
@@ -45,7 +40,7 @@ namespace TestApplication
             var file = "sessionFile";
             // Get username from settings
             var username = Environment.GetEnvironmentVariable("PEW_EMAIL");
-            if(username == null)
+            if (username == null)
             {
                 logger.LogError("Set the username in the appSettings section of the app.config");
                 Pause();
@@ -54,7 +49,7 @@ namespace TestApplication
 
             // Get password from vault
             var password = Environment.GetEnvironmentVariable("PEW_PASSWORD");
-            if(password == null)
+            if (password == null)
             {
                 // Get password from the console
                 Console.Write("Password: ");
@@ -64,12 +59,12 @@ namespace TestApplication
 
             logger.LogInformation("Attempting log in");
 
-            using(var pcClient = new PersonalCapitalClient())
+            using (var pcClient = new PersonalCapitalClient())
             {
                 try
                 {
                     // Restore session from the file configured if it exists
-                    if(File.Exists(file))
+                    if (File.Exists(file))
                     {
                         logger.LogInformation($"Restoring session from {file}");
                         pcClient.RestoreSession(file);
@@ -77,7 +72,8 @@ namespace TestApplication
                     // Attempt to login; successful if no exceptions are thrown
                     await pcClient.Login(username, password);
                     logger.LogInformation("Logged in Successfully");
-                } catch(RequireTwoFactorException)
+                }
+                catch (RequireTwoFactorException)
                 {
                     await pcClient.SendTwoFactorChallenge(TwoFactorVerificationMode.SMS);
                     string code;
@@ -85,22 +81,22 @@ namespace TestApplication
                     {
                         Console.Write("Code: ");
                         code = Console.ReadLine();
-                        if(string.IsNullOrEmpty(code))
+                        if (string.IsNullOrEmpty(code))
                         {
                             break;
                         }
                         var result = await pcClient.TwoFactorAuthenticate(TwoFactorVerificationMode.SMS, code);
-                        if(result.Header.AuthLevel == Constants.AuthLevel.DeviceAuthorized)
+                        if (result.Header.AuthLevel == Constants.AuthLevel.DeviceAuthorized)
                         {
                             break;
                         }
                     }
                     while (!string.IsNullOrEmpty(code));
-                    if(!string.IsNullOrEmpty(code))
+                    if (!string.IsNullOrEmpty(code))
                     {
                         // Challenge passed successfully
                         var result = await pcClient.AuthenticatePassword(password);
-                        if(result.Header.AuthLevel == Constants.AuthLevel.SessionAuthenticated)
+                        if (result.Header.AuthLevel == Constants.AuthLevel.SessionAuthenticated)
                         {
                             logger.LogInformation("Logged in Successfully");
                             pcClient.PersistSession(file);
@@ -112,9 +108,9 @@ namespace TestApplication
                         Pause();
                         return;
                     }
-                } 
-                catch(PersonalCapitalException e)
-                {                   
+                }
+                catch (PersonalCapitalException e)
+                {
                     logger.LogError(e.Message);
                     Pause();
                     return;
@@ -125,28 +121,28 @@ namespace TestApplication
                 var outputs = usermessage.Data.UserMessages.Select(c => c.Summary).ToList();
                 LogOutputs(outputs);
                 var accountResponse = await pcClient.FetchAccounts();
-                outputs = new List<string> 
+                outputs = new List<string>
                 {
                     $"Net Worth: {accountResponse.Data.Networth}"
-                };               
-                foreach(var group in accountResponse.Data.Accounts.GroupBy(x => x.ProductType))
+                };
+                foreach (var group in accountResponse.Data.Accounts.GroupBy(x => x.ProductType))
                 {
                     outputs.Add((group.Key?.Replace('_', ' ')) + ":");
-                    foreach(var account in group)
+                    foreach (var account in group)
                     {
                         outputs.Add($"{account.UserAccountId} -> {account.Name}: ${account.Balance}");
                     }
                 }
                 LogOutputs(outputs);
-                var transactionsResponse = await  pcClient.FetchUserTransactions(
+                var transactionsResponse = await pcClient.FetchUserTransactions(
                     new FetchUserTransactionsRequest(DateTime.Today.AddDays(-7), DateTime.Today));
                 outputs = new List<string>
                 {
                     $"Net Cash Flow: {transactionsResponse.Data.NetCashflow}",
                     $"Date Range: {transactionsResponse.Data.StartDate} - {transactionsResponse.Data.EndDate}"
                 };
-                
-                foreach(var tx in transactionsResponse.Data.Transactions.Where(x => x.IsSpending))
+
+                foreach (var tx in transactionsResponse.Data.Transactions.Where(x => x.IsSpending))
                 {
                     outputs.Add($"{tx.SimpleDescription.WhenNullOrEmpty(tx.TransactionType)} : ${tx.Amount}");
                 }
