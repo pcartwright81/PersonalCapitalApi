@@ -3,12 +3,6 @@ using Newtonsoft.Json;
 
 namespace PersonalCapital.Response
 {
-    public class CustomTags
-    {
-        public List<object> systemTags { get; set; }
-        public List<object> userTags { get; set; }
-    }
-
     public class UpdateTransactionResponseData
     {
         public string symbol { get; set; }

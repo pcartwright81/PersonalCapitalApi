@@ -149,5 +149,8 @@ namespace PersonalCapital.Response
         public string Status { get; set; }
 
         public string DataProvider { get; set; } = "Personal Capital";
+
+        [JsonProperty(PropertyName = "customTags")]
+        public CustomTags CustomTags { get; set; }
     }
 }

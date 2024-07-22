@@ -263,6 +263,11 @@ namespace PersonalCapital.Api
             return Fetch<BillReminderResponse>(@"account/getBillReminders", null);
         }
 
+        public Task<FetchTagsResponse> FetchTags()
+        {
+            return Fetch<FetchTagsResponse>(@"transactiontag/getTags", null);
+        }
+
         #endregion
     }
 }
