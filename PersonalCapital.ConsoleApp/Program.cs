@@ -37,7 +37,7 @@
         private static async Task Main()
         {
             Initialize();
-            var file = "sessionFile";
+            var file = "PersonalCapitalSession_new.bin";
             // Get username from settings
             var username = Environment.GetEnvironmentVariable("PEW_EMAIL");
             if (username == null)
