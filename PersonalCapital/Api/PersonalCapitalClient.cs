@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -49,18 +49,27 @@ namespace PersonalCapital.Api
 
         public void PersistSession(string filename)
         {
-            using Stream stream = File.Open(filename, FileMode.Create);
-            var binaryFormatter = new BinaryFormatter();
-            binaryFormatter.Serialize(stream, CookieContainer);
+            byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(CookieContainer.GetAllCookies());
+            File.WriteAllBytes(filename, bytes);
         }
 
         public void RestoreSession(string filename)
         {
-            using Stream stream = File.Open(filename, FileMode.Open);
-            var binaryFormatter = new BinaryFormatter();
-            CookieContainer = (CookieContainer) binaryFormatter.Deserialize(stream);
-        }
+            byte[] bytes = File.ReadAllBytes(filename);
+            var cookieCollection = JsonSerializer.Deserialize<CookieCollection>(bytes);
+            foreach (var cookie in cookieCollection) 
+            { 
+                var x = (Cookie)cookie;
+                if(x.Expires < DateTime.Now)
+                {
+                    x.Expires = DateTime.Now.AddYears(1);
+                }
+            }
 
+            CookieContainer = new CookieContainer();
+            CookieContainer.Add(cookieCollection);
+        }
+#pragma warning restore SYSLIB0011
         public async Task<IdentifyUserResponse> Login(string username, string password,
             CookieContainer sessionCookies = null)
         {
