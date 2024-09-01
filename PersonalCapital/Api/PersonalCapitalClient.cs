@@ -22,11 +22,11 @@ namespace PersonalCapital.Api
 
         private readonly HttpClient _client;
         private readonly HttpClientHandler _clientHandler;
-        private readonly Regex _csrfRegex = new Regex("globals.csrf='([a-f0-9-]+)'", RegexOptions.Compiled);
+        private readonly Regex _csrfRegex = new Regex("window.csrf ='([a-f0-9-]+)'", RegexOptions.Compiled);
 
         public PersonalCapitalClient()
         {
-            _clientHandler = new HttpClientHandler {UseCookies = true, CookieContainer = new CookieContainer()};
+            _clientHandler = new HttpClientHandler {UseCookies = true, CookieContainer = new CookieContainer() };
             _client = new HttpClient(_clientHandler) {BaseAddress = new Uri(BaseApiUrl)};
         }
 
