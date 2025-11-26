@@ -1,23 +1,23 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using PersonalCapital.Exceptions;
 using PersonalCapital.Extensions;
 using PersonalCapital.Request;
 using PersonalCapital.Response;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace PersonalCapital.Api
 {
     [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public class PersonalCapitalClient :  IDisposable
     {
-        private const string BaseUrl = "https://home.personalcapital.com/";
+        private const string BaseUrl = "https://pc-api.empower-retirement.com/";
         private const string BaseApiUrl = BaseUrl + "api/";
 
         private readonly HttpClient _client;
@@ -76,15 +76,16 @@ namespace PersonalCapital.Api
             if (sessionCookies != null) CookieContainer = sessionCookies;
 
             var initialCsrf = await GetCsrfFromHomepage();
-            var userResponse = await IdentifyUser(username, initialCsrf);
+            Csrf = initialCsrf;
+            //var userResponse = await IdentifyUser(username, initialCsrf);
 
-            if (string.IsNullOrEmpty(userResponse?.Header?.Csrf) || string.IsNullOrEmpty(userResponse.Header?.AuthLevel)
-            ) throw new Exception("Unable to identify user");
-            ParseHeaderForErrors(userResponse.Header);
+            //if (string.IsNullOrEmpty(userResponse?.Header?.Csrf) || string.IsNullOrEmpty(userResponse.Header?.AuthLevel)
+            //) throw new Exception("Unable to identify user");
+            //ParseHeaderForErrors(userResponse.Header);
 
-            if (userResponse.Header.AuthLevel != Constants.AuthLevel.UserRemembered)
-                throw new RequireTwoFactorException();
-            var authenticationResponse = await AuthenticatePassword(password);
+            //if (userResponse.Header.AuthLevel != Constants.AuthLevel.UserRemembered)
+            //    throw new RequireTwoFactorException();
+            var authenticationResponse = await AuthenticatePassword(username, password);
             ParseHeaderForErrors(authenticationResponse.Header);
             return authenticationResponse;
             // If we got here, the user is valid, but isn't remembered by PersonalCapital
@@ -107,6 +108,8 @@ namespace PersonalCapital.Api
                
         public async Task<IdentifyUserResponse> IdentifyUser(string username, string initialCsrf)
         {
+            Csrf = initialCsrf;
+            return null;
             var data = new IdentifyUserRequest
             {
                 Username = username,
@@ -176,17 +179,24 @@ namespace PersonalCapital.Api
             return await httpMessage.Content.ReadAsAsync<HeaderOnlyResponse>();
         }
 
-        public async Task<IdentifyUserResponse> AuthenticatePassword(string password)
+        public async Task<IdentifyUserResponse> AuthenticatePassword(string username, string password)
         {
-            var data = new AuthenticatePasswordRequest
+            var authData = new AuthenticationData
             {
-                Csrf = Csrf,
+                DeviceFingerPrint = "1a7c37451da15092050556ea76dea4f8",
+                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                Language = "en-US",
+                HasLiedLanguages = false,
+                HasLiedResolution = false,
+                HasLiedOs = false,
+                HasLiedBrowser = false,
+                UserName = username,
                 Password = password,
-                BindDevice = "true",
-                DeviceName = ""
+                FlowName = "mfa",
+                Accu = "MYERIRA"
             };
 
-            var httpMessage = await _client.PostHttpEncodedData("credential/authenticatePassword", data);
+            var httpMessage = await _client.PostAsJsonAsync("auth/multiauth/noauth/authenticate", authData);
             return await httpMessage.Content.ReadAsAsync<IdentifyUserResponse>();
         }
 
@@ -202,6 +212,7 @@ namespace PersonalCapital.Api
             // Send data as HTTP Encoded
             var httpMessage = await _client.PostHttpEncodedData(url, (object) payload);
             // Parse into type expected
+            var conent = await httpMessage.Content.ReadAsStringAsync();
             return await httpMessage.Content.ReadAsAsync<T>();
         }
 
