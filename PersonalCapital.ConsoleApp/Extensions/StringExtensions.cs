@@ -1,10 +1,9 @@
-﻿namespace PersonalCapital.ConsoleApp.Extensions
+﻿namespace PersonalCapital.ConsoleApp.Extensions;
+
+public static class StringExtensions
 {
-    public static class StringExtensions
+    public static string WhenNullOrEmpty(this string value, string defaultValue)
     {
-        public static string WhenNullOrEmpty(this string value, string defaultValue)
-        {
-            return string.IsNullOrEmpty(value) ? defaultValue : value;
-        }
+        return string.IsNullOrEmpty(value) ? defaultValue : value;
     }
 }

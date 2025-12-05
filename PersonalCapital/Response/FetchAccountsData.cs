@@ -1,41 +1,18 @@
-﻿using System.Collections.Generic;
-using Newtonsoft.Json;
+﻿﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 
-namespace PersonalCapital.Response
-{
-    public class FetchAccountsData
-    {
-        [JsonProperty(PropertyName = "creditCardAccountsTotal")]
-        public decimal CreditCardAccountsTotal { get; set; }
+namespace PersonalCapital.Response;
 
-        [JsonProperty(PropertyName = "assets")]
-        public decimal Assets { get; set; }
-
-        [JsonProperty(PropertyName = "otherLiabilitiesAccountsTotal")]
-        public decimal OtherLiabilitiesAccountsTotal { get; set; }
-
-        [JsonProperty(PropertyName = "cashAccountsTotal")]
-        public decimal CashAccountsTotal { get; set; }
-
-        [JsonProperty(PropertyName = "liabilities")]
-        public decimal Liabilities { get; set; }
-
-        [JsonProperty(PropertyName = "networth")]
-        public decimal Networth { get; set; }
-
-        [JsonProperty(PropertyName = "investmentAccountsTotal")]
-        public decimal InvestmentAccountsTotal { get; set; }
-
-        [JsonProperty(PropertyName = "mortgageAccountsTotal")]
-        public decimal MortgageAccountsTotal { get; set; }
-
-        [JsonProperty(PropertyName = "loanAccountsTotal")]
-        public decimal LoanAccountsTotal { get; set; }
-
-        [JsonProperty(PropertyName = "otherAssetAccountsTotal")]
-        public decimal OtherAssetAccountsTotal { get; set; }
-
-        [JsonProperty(PropertyName = "accounts")]
-        public List<Account> Accounts { get; set; }
-    }
-}
+public record FetchAccountsData(
+    [property: JsonProperty(PropertyName = "creditCardAccountsTotal")] decimal CreditCardAccountsTotal,
+    [property: JsonProperty(PropertyName = "assets")] decimal Assets,
+    [property: JsonProperty(PropertyName = "otherLiabilitiesAccountsTotal")] decimal OtherLiabilitiesAccountsTotal,
+    [property: JsonProperty(PropertyName = "cashAccountsTotal")] decimal CashAccountsTotal,
+    [property: JsonProperty(PropertyName = "liabilities")] decimal Liabilities,
+    [property: JsonProperty(PropertyName = "networth")] decimal Networth,
+    [property: JsonProperty(PropertyName = "investmentAccountsTotal")] decimal InvestmentAccountsTotal,
+    [property: JsonProperty(PropertyName = "mortgageAccountsTotal")] decimal MortgageAccountsTotal,
+    [property: JsonProperty(PropertyName = "loanAccountsTotal")] decimal LoanAccountsTotal,
+    [property: JsonProperty(PropertyName = "otherAssetAccountsTotal")] decimal OtherAssetAccountsTotal,
+    [property: JsonProperty(PropertyName = "accounts")] List<Account> Accounts
+);

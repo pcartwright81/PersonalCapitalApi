@@ -1,66 +1,24 @@
-﻿using Newtonsoft.Json;
+﻿﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Response
-{
-    public class Account
-    {
-        [JsonProperty(PropertyName = "priorBalance")]
-        public decimal PriorBalance { get; set; }
+namespace PersonalCapital.Response;
 
-        [JsonProperty(PropertyName = "originalName")]
-        public string OriginalName { get; set; }
-
-        [JsonProperty(PropertyName = "balance")]
-        public decimal Balance { get; set; }
-
-        [JsonProperty(PropertyName = "accountId")]
-        public string AccountId { get; set; }
-
-        [JsonProperty(PropertyName = "userAccountId")]
-        public long UserAccountId { get; set; }
-
-        [JsonProperty(PropertyName = "name")] public string Name { get; set; }
-
-        [JsonProperty(PropertyName = "firmName")]
-        public string FirmName { get; set; }
-
-        [JsonProperty(PropertyName = "productType")]
-        public string ProductType { get; set; }
-
-        [JsonProperty(PropertyName = "accountType")]
-        public string AccountType { get; set; }
-
-        [JsonProperty(PropertyName = "accountTypeGroup")]
-        public string AccountTypeGroup { get; set; }
-
-        [JsonProperty(PropertyName = "fundFees")]
-        public decimal FundFees { get; set; }
-
-        [JsonProperty(PropertyName = "feesPerYear")]
-        public string FeesPerYear { get; set; } // TODO: Convert to decimal
-
-        [JsonProperty(PropertyName = "totalFee")]
-        public decimal TotalFee { get; set; }
-
-        [JsonProperty(PropertyName = "originalFirmName")]
-        public string OriginalFirmName { get; set; }
-
-        #region CREDIT
-
-        [JsonProperty(PropertyName = "lastPayment")]
-        public decimal LastPayment { get; set; }
-
-        [JsonProperty(PropertyName = "runningBalance")]
-        public decimal RunningBalance { get; set; }
-
-        [JsonProperty(PropertyName = "availableCredit")]
-        public decimal AvailableCredit { get; set; }
-
-        [JsonProperty(PropertyName = "creditLimit")]
-        public decimal CreditLimit { get; set; }
-
-        public string DataProvider { get; set; } = "Personal Capital";
-
-        #endregion
-    }
-}
+public record Account(
+    [property: JsonProperty(PropertyName = "priorBalance")] decimal PriorBalance,
+    [property: JsonProperty(PropertyName = "originalName")] string OriginalName,
+    [property: JsonProperty(PropertyName = "balance")] decimal Balance,
+    [property: JsonProperty(PropertyName = "accountId")] string AccountId,
+    [property: JsonProperty(PropertyName = "userAccountId")] long UserAccountId,
+    [property: JsonProperty(PropertyName = "name")] string Name,
+    [property: JsonProperty(PropertyName = "firmName")] string FirmName,
+    [property: JsonProperty(PropertyName = "productType")] string ProductType,
+    [property: JsonProperty(PropertyName = "accountType")] string AccountType,
+    [property: JsonProperty(PropertyName = "accountTypeGroup")] string AccountTypeGroup,
+    [property: JsonProperty(PropertyName = "fundFees")] decimal FundFees,
+    [property: JsonProperty(PropertyName = "feesPerYear")] string FeesPerYear,
+    [property: JsonProperty(PropertyName = "totalFee")] decimal TotalFee,
+    [property: JsonProperty(PropertyName = "originalFirmName")] string OriginalFirmName,
+    [property: JsonProperty(PropertyName = "lastPayment")] decimal LastPayment,
+    [property: JsonProperty(PropertyName = "runningBalance")] decimal RunningBalance,
+    [property: JsonProperty(PropertyName = "availableCredit")] decimal AvailableCredit,
+    [property: JsonProperty(PropertyName = "creditLimit")] decimal CreditLimit
+);

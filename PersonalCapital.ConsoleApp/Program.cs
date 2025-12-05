@@ -1,148 +1,158 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PersonalCapital.Api;
 using PersonalCapital.ConsoleApp.Extensions;
 using PersonalCapital.Exceptions;
 using PersonalCapital.Request;
 
-namespace PersonalCapital.ConsoleApp;
+const string sessionFile = "PersonalCapitalSession_new.bin";
 
-internal class Program
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureLogging(logging =>
+    {
+        logging.ClearProviders();
+        logging.AddConsole();
+    })
+    .ConfigureServices((_, services) =>
+    {
+        services.AddSingleton<PersonalCapitalClient>();
+    })
+    .Build();
+
+var logger = host.Services.GetRequiredService<ILogger<Program>>();
+var config = host.Services.GetRequiredService<IConfiguration>();
+
+// Get credentials from User Secrets or environment variables via IConfiguration
+var username = config["PEW_EMAIL"];
+var password = config["PEW_PASSWORD"];
+
+if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
 {
-    private static ILogger<Program> _logger = null!;
-
-    private static void Initialize()
+    if (string.IsNullOrWhiteSpace(username))
     {
-        var host = Host.CreateDefaultBuilder()
-            .ConfigureAppConfiguration((_, _) => { })
-            .ConfigureServices((_, services) =>
-            {
-                services.AddLogging(opt => { opt.AddSimpleConsole(c => { c.TimestampFormat = "[HH:mm:ss] "; }); });
-            })
-            .Build();
-        using var serviceScope = host.Services.CreateScope();
-        var provider = serviceScope.ServiceProvider;
-        _logger = provider.GetRequiredService<ILogger<Program>>();
+        logger.LogError("Username 'PEW_EMAIL' is not set. Use 'dotnet user-secrets set \"PEW_EMAIL\" \"your-email\"' to configure it.");
     }
-
-    private static async Task Main()
+    if (string.IsNullOrWhiteSpace(password))
     {
-        Initialize();
-        const string file = "PersonalCapitalSession_new.bin";
-        // Get username from settings
-        var username = Environment.GetEnvironmentVariable("PEW_EMAIL");
-        if (username == null)
+        logger.LogError("Password 'PEW_PASSWORD' is not set. Use 'dotnet user-secrets set \"PEW_PASSWORD\" \"your-password\"' to configure it.");
+    }
+    Pause();
+    return;
+}
+
+logger.LogInformation("Attempting log in for {Username}", username);
+
+using var pcClient = host.Services.GetRequiredService<PersonalCapitalClient>();
+
+var loggedIn = await HandleLoginAsync(pcClient, username, password);
+
+if (!loggedIn)
+{
+    logger.LogError("Login failed. Please check credentials and 2FA code if prompted.");
+    Pause();
+    return;
+}
+
+logger.LogInformation("Logged in Successfully");
+
+var bills = await pcClient.FetchBills();
+
+var messages = await pcClient.FetchUserMessages();
+var messageSummaries = messages.Data.UserMessages.Select(c => c.Summary);
+LogOutputs(messageSummaries);
+
+var accountResponse = await pcClient.FetchAccounts();
+var accountOutputs = new List<string> { $"Net Worth: {accountResponse.Data.Networth:C}" };
+foreach (var group in accountResponse.Data.Accounts.GroupBy(x => x.ProductType))
+{
+    accountOutputs.Add(group.Key?.Replace('_', ' ') + ":");
+    accountOutputs.AddRange(group.Select(account =>
+        $"{account.UserAccountId} -> {account.Name}: {account.Balance:C}"));
+}
+LogOutputs(accountOutputs);
+
+var transactionsResponse = await pcClient.FetchUserTransactions(
+    new FetchUserTransactionsRequest(DateTime.Today.AddDays(-7), DateTime.Today));
+var transactionOutputs = new List<string>
+    {
+        $"Net Cash Flow: {transactionsResponse.Data.NetCashflow:C}",
+        $"Date Range: {transactionsResponse.Data.StartDate} - {transactionsResponse.Data.EndDate}"
+    };
+transactionOutputs.AddRange(transactionsResponse.Data.Transactions.Where(x => x.IsSpending).Select(tx =>
+    $"{tx.SimpleDescription.WhenNullOrEmpty(tx.TransactionType)} : {tx.Amount:C}"));
+LogOutputs(transactionOutputs);
+
+async Task<bool> HandleLoginAsync(PersonalCapitalClient client, string user, string pass)
+{
+    try 
+    {
+        // Restore session from the file if it exists
+        if (File.Exists(sessionFile))
         {
-            _logger.LogError("Set the username in the appSettings section of the app.config");
-            Pause();
-            return;
+            logger.LogInformation("Restoring session from {File}", sessionFile);
+            client.RestoreSession(sessionFile);
         }
 
-        // Get password from vault
-        var password = Environment.GetEnvironmentVariable("PEW_PASSWORD");
-        if (password == null)
+        // Attempt to log in; successful if no exceptions are thrown
+        await client.Login(user, pass);
+        client.PersistSession(sessionFile);
+        return true;
+    }
+    catch (RequireTwoFactorException)
+    {
+        logger.LogInformation("Two-factor authentication is required.");
+        await client.SendTwoFactorChallenge(TwoFactorVerificationMode.SMS);
+
+        Console.Write("Code: ");
+        var code = Console.ReadLine();
+        if (string.IsNullOrEmpty(code))
         {
-            // Get password from the console
-            Console.Write("Password: ");
-            password = Console.ReadLine();
-            Console.Clear();
+            logger.LogError("Two-factor code was not provided.");
+            return false;
         }
 
-        _logger.LogInformation("Attempting log in");
-
-        using (var pcClient = new PersonalCapitalClient())
+        var twoFaResult = await client.TwoFactorAuthenticate(TwoFactorVerificationMode.SMS, code);
+        if (twoFaResult.Header.AuthLevel != PersonalCapital.Api.Constants.AuthLevel.DeviceAuthorized)
         {
-            try
-            {
-                // Restore session from the file configured if it exists
-                if (File.Exists(file))
-                {
-                    _logger.LogInformation("Restoring session from {File}", file);
-                    pcClient.RestoreSession(file);
-                }
-
-                // Attempt to log in; successful if no exceptions are thrown
-                await pcClient.Login(username, password);
-                _logger.LogInformation("Logged in Successfully");
-            }
-            catch (RequireTwoFactorException)
-            {
-                await pcClient.SendTwoFactorChallenge(TwoFactorVerificationMode.SMS);
-                string? code;
-                do
-                {
-                    Console.Write("Code: ");
-                    code = Console.ReadLine();
-                    if (string.IsNullOrEmpty(code)) break;
-                    var result = await pcClient.TwoFactorAuthenticate(TwoFactorVerificationMode.SMS, code);
-                    if (result.Header.AuthLevel == Constants.AuthLevel.DeviceAuthorized) break;
-                } while (!string.IsNullOrEmpty(code));
-
-                if (!string.IsNullOrEmpty(code))
-                {
-                    // Challenge passed successfully
-                    var result = await pcClient.AuthenticatePassword(username, password);
-                    if (result.Header.AuthLevel == Constants.AuthLevel.SessionAuthenticated)
-                    {
-                        _logger.LogInformation("Logged in Successfully");
-                        pcClient.PersistSession(file);
-                    }
-                }
-                else
-                {
-                    _logger.LogError("Two factor authentication failed. Unable to log in.");
-                    Pause();
-                    return;
-                }
-            }
-            catch (PersonalCapitalException e)
-            {
-                _logger.LogError(e.Message);
-                Pause();
-                return;
-            }
-
-            await pcClient.FetchBills();
-            var messages = await pcClient.FetchUserMessages();
-            var outputs = messages.Data.UserMessages.Select(c => c.Summary).ToList();
-            LogOutputs(outputs);
-            var accountResponse = await pcClient.FetchAccounts();
-            outputs = [$"Net Worth: {accountResponse.Data.Networth}"];
-            foreach (var group in accountResponse.Data.Accounts.GroupBy(x => x.ProductType))
-            {
-                outputs.Add(group.Key?.Replace('_', ' ') + ":");
-                outputs.AddRange(group.Select(account =>
-                    $"{account.UserAccountId} -> {account.Name}: ${account.Balance}"));
-            }
-
-            LogOutputs(outputs);
-            var transactionsResponse = await pcClient.FetchUserTransactions(
-                new FetchUserTransactionsRequest(DateTime.Today.AddDays(-7), DateTime.Today));
-            outputs =
-            [
-                $"Net Cash Flow: {transactionsResponse.Data.NetCashflow}",
-                $"Date Range: {transactionsResponse.Data.StartDate} - {transactionsResponse.Data.EndDate}"
-            ];
-            outputs.AddRange(transactionsResponse.Data.Transactions.Where(x => x.IsSpending).Select(tx =>
-                $"{tx.SimpleDescription.WhenNullOrEmpty(tx.TransactionType)} : ${tx.Amount}"));
-            LogOutputs(outputs);
+            logger.LogError("Invalid two-factor code.");
+            return false;
         }
 
-        Pause();
-    }
+        // Challenge passed successfully, now authenticate the session
+        var authResult = await client.Login(user, pass);
+        if (authResult.Success)
+        {
+            client.PersistSession(sessionFile);
+            return true;
+        }
 
-    private static void LogOutputs(List<string> messages)
-    {
-        _logger.LogInformation(string.Join(Environment.NewLine, messages.Where(x => !string.IsNullOrWhiteSpace(x))));
+        return false;
     }
+    catch (PersonalCapitalException e)
+    {
+        logger.LogError(e, "An error occurred during login: {Message}", e.Message);
+        return false;
+    }
+}
 
-    /// <summary>
-    ///     Implement the pause console command
-    /// </summary>
-    private static void Pause()
+
+
+void LogOutputs(IEnumerable<string> messages)
+{
+    var output = string.Join(Environment.NewLine, messages.Where(x => !string.IsNullOrWhiteSpace(x)));
+    if (!string.IsNullOrEmpty(output))
     {
-        Console.Write("Press any key to continue...");
-        Console.ReadKey(true);
+        logger.LogInformation("{Output}", Environment.NewLine + output);
     }
+}
+
+/// <summary>
+/// Pauses the console by waiting for a key press.
+/// </summary>
+void Pause()
+{
+    Console.Write("Press any key to continue...");
+    Console.ReadKey(true);
 }

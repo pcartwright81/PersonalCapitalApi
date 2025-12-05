@@ -1,10 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Response
-{
-    public class HeaderOnlyResponse
-    {
-        [JsonProperty(PropertyName = "spHeader")]
-        public HeaderResponse Header { get; set; }
-    }
-}
+namespace PersonalCapital.Response;
+
+public record HeaderOnlyResponse(
+    [property: JsonProperty(PropertyName = "spHeader")] SpHeader Header
+);

@@ -1,16 +1,10 @@
 ﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Request
-{
-    public class TwoFactorChallengeRequest : BaseRequest
-    {
-        [JsonProperty(PropertyName = "challengeReason")]
-        public string ChallengeReason { get; set; }
+namespace PersonalCapital.Request;
 
-        [JsonProperty(PropertyName = "challengeMethod")]
-        public string ChallengeMethod { get; set; }
-
-        [JsonProperty(PropertyName = "challengeType")]
-        public string ChallengeType { get; set; }
-    }
-}
+public record TwoFactorChallengeRequest(
+    string Csrf,
+    [property: JsonProperty("challengeReason")] string ChallengeReason,
+    [property: JsonProperty("challengeMethod")] string ChallengeMethod,
+    [property: JsonProperty("challengeType")] string ChallengeType
+) : BaseRequest(Csrf);

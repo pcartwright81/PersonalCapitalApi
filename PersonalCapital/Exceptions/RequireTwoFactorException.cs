@@ -1,9 +1,8 @@
-﻿namespace PersonalCapital.Exceptions
+﻿namespace PersonalCapital.Exceptions;
+
+public class RequireTwoFactorException : PersonalCapitalException
 {
-    public class RequireTwoFactorException : PersonalCapitalException
+    public RequireTwoFactorException() : base("Two-factor authentication is required")
     {
-        public RequireTwoFactorException() : base("Two-factor authentication is required")
-        {
-        }
     }
 }

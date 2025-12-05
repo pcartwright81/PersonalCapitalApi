@@ -1,33 +1,21 @@
-﻿using Newtonsoft.Json;
+﻿﻿﻿﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Response
+namespace PersonalCapital.Response;
+
+public record CategoryData(
+    [property: JsonProperty(PropertyName = "isEditable")] bool IsEditable,
+    [property: JsonProperty(PropertyName = "name")] string Name,
+    [property: JsonProperty(PropertyName = "isCustom")] bool IsCustom,
+    [property: JsonProperty(PropertyName = "isOverride")] bool IsOverride,
+    [property: JsonProperty(PropertyName = "transactionCategoryId")] int TransactionCategoryId,
+    [property: JsonProperty(PropertyName = "shortDescription")] string ShortDescription,
+    [property: JsonProperty(PropertyName = "type")] string Type
+)
 {
-    public class CategoryData
+    public string DataProvider { get; init; } = "Personal Capital";
+
+    public override string ToString()
     {
-        [JsonProperty(PropertyName = "isEditable")]
-        public bool IsEditable { get; set; }
-
-        [JsonProperty(PropertyName = "name")] public string Name { get; set; }
-
-        [JsonProperty(PropertyName = "isCustom")]
-        public bool IsCustom { get; set; }
-
-        [JsonProperty(PropertyName = "isOverride")]
-        public bool IsOverride { get; set; }
-
-        [JsonProperty(PropertyName = "transactionCategoryId")]
-        public int TransactionCategoryId { get; set; }
-
-        [JsonProperty(PropertyName = "shortDescription")]
-        public string ShortDescription { get; set; }
-
-        [JsonProperty(PropertyName = "type")] public string Type { get; set; }
-
-        public string DataProvider { get; set; } = "Personal Capital";
-
-        public override string ToString()
-        {
-            return Name;
-        }
+        return Name;
     }
 }

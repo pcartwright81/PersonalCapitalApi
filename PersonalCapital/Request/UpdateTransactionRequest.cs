@@ -1,30 +1,12 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 
-namespace PersonalCapital.Request
-{
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class UpdateTransactionRequest
-    {
-        public UpdateTransactionRequest(List<long> userTransactionIds, string description, long transactionCategoryId,
-            bool isDuplicate, string customTags)
-        {
-            this.userTransactionIds = $"[{string.Join(",", userTransactionIds)}]";
-            this.description = description;
-            this.transactionCategoryId = transactionCategoryId;
-            this.isDuplicate = isDuplicate.ToString().ToLower();
-            this.customTags = customTags;
-        }
+namespace PersonalCapital.Request;
 
-        public string userTransactionIds { get; }
-
-        public string description { get; }
-
-        public long transactionCategoryId { get; }
-
-        public string isDuplicate { get; }
-
-        public string customTags { get; }
-    }
-}
+public record UpdateTransactionRequest(
+    [property: JsonProperty("userTransactionIds")] IEnumerable<long> UserTransactionIds,
+    [property: JsonProperty("description")] string Description,
+    [property: JsonProperty("transactionCategoryId")] long TransactionCategoryId,
+    [property: JsonProperty("isDuplicate")] bool IsDuplicate,
+    [property: JsonProperty("customTags")] string CustomTags
+);

@@ -1,209 +1,82 @@
-﻿using Newtonsoft.Json;
-
-namespace PersonalCapital.Response
-{
-    public class FetchPersonData
-    {
-        [JsonProperty(PropertyName = "id")] public long Id { get; set; }
-
-        [JsonProperty(PropertyName = "phone")] public string Phone { get; set; }
-
-        [JsonProperty(PropertyName = "name")] public PersonName Name { get; set; }
-
-        [JsonProperty(PropertyName = "birthday")]
-        public PersonDate Birthday { get; set; }
-
-        [JsonProperty(PropertyName = "otherGovernmentIdDescription")]
-        public string OtherGovernmentIdDescription { get; set; }
-
-        [JsonProperty(PropertyName = "countryOfGovtIdIssue")]
-        public string CountryOfGovtIdIssue { get; set; }
-
-        [JsonProperty(PropertyName = "employerName")]
-        public string EmployerName { get; set; }
-
-        [JsonProperty(PropertyName = "occupation")]
-        public string Occupation { get; set; }
-
-        [JsonProperty(PropertyName = "natureOfBusiness")]
-        public string NatureOfBusiness { get; set; }
-
-        [JsonProperty(PropertyName = "numberOfYearsEmployed")]
-        public string NumberOfYearsEmployed { get; set; }
-
-        [JsonProperty(PropertyName = "gender")]
-        public string Gender { get; set; }
-
-        [JsonProperty(PropertyName = "countryOfCitizenship")]
-        public string CountryOfCitizenship { get; set; }
-
-        [JsonProperty(PropertyName = "countryOfBirth")]
-        public string CountryOfBirth { get; set; }
-
-        [JsonProperty(PropertyName = "countryOfResidency")]
-        public string CountryOfResidency { get; set; }
-
-        [JsonProperty(PropertyName = "natureOfAffiliationSelf")]
-        public string NatureOfAffiliationSelf { get; set; }
-
-        [JsonProperty(PropertyName = "natureOfAffiliationRelationship")]
-        public string NatureOfAffiliationRelationship { get; set; }
-
-        [JsonProperty(PropertyName = "natureOfAffiliationName")]
-        public string NatureOfAffiliationName { get; set; }
-
-        [JsonProperty(PropertyName = "secAffiliatedFirmName")]
-        public string SecAffiliatedFirmName { get; set; }
-
-        [JsonProperty(PropertyName = "secAffiliatedEmployeeYN")]
-        public string SecAffiliatedEmployee { get; set; }
-
-        [JsonProperty(PropertyName = "controlPersonYN")]
-        public string ControlPerson { get; set; }
-
-        [JsonProperty(PropertyName = "controlPersonFirmName")]
-        public string ControlPersonFirmName { get; set; }
-
-        [JsonProperty(PropertyName = "taxFilingStatus")]
-        public string TaxFilingStatus { get; set; }
-
-        [JsonProperty(PropertyName = "secondPersonContributing")]
-        public bool SecondPersonContributing { get; set; }
-
-        [JsonProperty(PropertyName = "retirementAge")]
-        public int RetirementAge { get; set; }
-
-        [JsonProperty(PropertyName = "retirementHorizon")]
-        public string RetirementHorizon { get; set; }
-
-        [JsonProperty(PropertyName = "secAffilatedPersonAndFirmName")]
-        public string SecAffilatedPersonAndFirmName { get; set; }
-
-        [JsonProperty(PropertyName = "employeeAnotherIBD")]
-        public string EmployeeAnotherIbd { get; set; }
-
-        [JsonProperty(PropertyName = "relatedEmployeeAnotherIBD")]
-        public string RelatedEmployeeAnotherIbd { get; set; }
-
-        [JsonProperty(PropertyName = "ibdNameEmployedAtOther")]
-        public string IbdNameEmployedAtOther { get; set; }
-
-        [JsonProperty(PropertyName = "ibdNameRelatedtoEmployee")]
-        public string IbdNameRelatedtoEmployee { get; set; }
-
-        [JsonProperty(PropertyName = "relatedOtherIBDFirstName")]
-        public string RelatedOtherIbdFirstName { get; set; }
-
-        [JsonProperty(PropertyName = "relatedOtherIBDLastName")]
-        public string RelatedOtherIbdLastName { get; set; }
-
-        [JsonProperty(PropertyName = "relatedOtherIBDRelationship")]
-        public string RelatedOtherIbdRelationship { get; set; }
-
-        [JsonProperty(PropertyName = "maritalStatus")]
-        public string MaritalStatus { get; set; }
-
-        [JsonProperty(PropertyName = "jobTitle")]
-        public string JobTitle { get; set; }
-
-        [JsonProperty(PropertyName = "targetPortfolioSource")]
-        public string TargetPortfolioSource { get; set; }
-
-        [JsonProperty(PropertyName = "targetPortfolioAccuracy")]
-        public decimal TargetPortfolioAccuracy { get; set; }
-
-        [JsonProperty(PropertyName = "targetPortfolioDetermined")]
-        public bool TargetPortfolioDetermined { get; set; }
-
-        [JsonProperty(PropertyName = "notCloseToRetirement")]
-        public bool NotCloseToRetirement { get; set; }
-
-        [JsonProperty(PropertyName = "networth")]
-        public PersonNetworth Networth { get; set; }
-
-        [JsonProperty(PropertyName = "hasAdvisedAccounts")]
-        public string HasAdvisedAccounts { get; set; }
-
-        [JsonProperty(PropertyName = "secAffiliatedEmployeeFamily")]
-        public string SecAffiliatedEmployeeFamily { get; set; }
-
-        [JsonProperty(PropertyName = "isSpouseDefaultBeneficiary")]
-        public bool IsSpouseDefaultBeneficiary { get; set; }
-
-        [JsonProperty(PropertyName = "relationship")]
-        public string Relationship { get; set; }
-
-        [JsonProperty(PropertyName = "isClientAgreementSigned")]
-        public bool IsClientAgreementSigned { get; set; }
-
-        [JsonProperty(PropertyName = "retired")]
-        public bool Retired { get; set; }
-
-        [JsonProperty(PropertyName = "ageAsInt")]
-        public int AgeAsInt { get; set; }
-
-        [JsonProperty(PropertyName = "emailAddress")]
-        public string EmailAddress { get; set; }
-
-        [JsonProperty(PropertyName = "userRetirementRange")]
-        public string UserRetirementRange { get; set; }
-
-        [JsonProperty(PropertyName = "secAffiliatedPersonFullName")]
-        public string SecAffiliatedPersonFullName { get; set; }
-
-        [JsonProperty(PropertyName = "userInputIncomeValue")]
-        public decimal UserInputIncomeValue { get; set; }
-
-        [JsonProperty(PropertyName = "age")] public decimal Age { get; set; }
-
-        [JsonProperty(PropertyName = "userRiskTolerance")]
-        public string UserRiskTolerance { get; set; }
-
-        [JsonProperty(PropertyName = "isRetired")]
-        public bool IsRetired { get; set; }
-
-        [JsonProperty(PropertyName = "countryCode")]
-        public string CountryCode { get; set; }
-    }
-
-    public class PersonName
-    {
-        [JsonProperty(PropertyName = "firstName")]
-        public string FirstName { get; set; }
-
-        [JsonProperty(PropertyName = "middleName")]
-        public string MiddleName { get; set; }
-
-        [JsonProperty(PropertyName = "salutation")]
-        public string Salutation { get; set; }
-
-        [JsonProperty(PropertyName = "suffix")]
-        public string Suffix { get; set; }
-
-        [JsonProperty(PropertyName = "lastName")]
-        public string LastName { get; set; }
-    }
-
-    public class PersonDate
-    {
-        [JsonProperty(PropertyName = "year")] public string Year { get; set; }
-
-        [JsonProperty(PropertyName = "month")] public string Month { get; set; }
-
-        [JsonProperty(PropertyName = "day")] public string Day { get; set; }
-
-        [JsonProperty(PropertyName = "empty")] public bool Empty { get; set; }
-    }
-
-    public class PersonNetworth
-    {
-        [JsonProperty(PropertyName = "calculatedValuePreference")]
-        public string CalculatedValuePreference { get; set; }
-
-        [JsonProperty(PropertyName = "userInputNetworth")]
-        public decimal UserInputNetworth { get; set; }
-
-        [JsonProperty(PropertyName = "netWorth")]
-        public decimal NetWorth { get; set; }
-    }
-}
+﻿﻿﻿﻿using Newtonsoft.Json;
+
+namespace PersonalCapital.Response;
+
+public record FetchPersonData(
+    [property: JsonProperty(PropertyName = "id")] long Id,
+    [property: JsonProperty(PropertyName = "phone")] string Phone,
+    [property: JsonProperty(PropertyName = "name")] PersonName Name,
+    [property: JsonProperty(PropertyName = "birthday")] PersonDate Birthday,
+    [property: JsonProperty(PropertyName = "otherGovernmentIdDescription")] string OtherGovernmentIdDescription,
+    [property: JsonProperty(PropertyName = "countryOfGovtIdIssue")] string CountryOfGovtIdIssue,
+    [property: JsonProperty(PropertyName = "employerName")] string EmployerName,
+    [property: JsonProperty(PropertyName = "occupation")] string Occupation,
+    [property: JsonProperty(PropertyName = "natureOfBusiness")] string NatureOfBusiness,
+    [property: JsonProperty(PropertyName = "numberOfYearsEmployed")] string NumberOfYearsEmployed,
+    [property: JsonProperty(PropertyName = "gender")] string Gender,
+    [property: JsonProperty(PropertyName = "countryOfCitizenship")] string CountryOfCitizenship,
+    [property: JsonProperty(PropertyName = "countryOfBirth")] string CountryOfBirth,
+    [property: JsonProperty(PropertyName = "countryOfResidency")] string CountryOfResidency,
+    [property: JsonProperty(PropertyName = "natureOfAffiliationSelf")] string NatureOfAffiliationSelf,
+    [property: JsonProperty(PropertyName = "natureOfAffiliationRelationship")] string NatureOfAffiliationRelationship,
+    [property: JsonProperty(PropertyName = "natureOfAffiliationName")] string NatureOfAffiliationName,
+    [property: JsonProperty(PropertyName = "secAffiliatedFirmName")] string SecAffiliatedFirmName,
+    [property: JsonProperty(PropertyName = "secAffiliatedEmployeeYN")] string SecAffiliatedEmployee,
+    [property: JsonProperty(PropertyName = "controlPersonYN")] string ControlPerson,
+    [property: JsonProperty(PropertyName = "controlPersonFirmName")] string ControlPersonFirmName,
+    [property: JsonProperty(PropertyName = "taxFilingStatus")] string TaxFilingStatus,
+    [property: JsonProperty(PropertyName = "secondPersonContributing")] bool SecondPersonContributing,
+    [property: JsonProperty(PropertyName = "retirementAge")] int RetirementAge,
+    [property: JsonProperty(PropertyName = "retirementHorizon")] string RetirementHorizon,
+    [property: JsonProperty(PropertyName = "secAffilatedPersonAndFirmName")] string SecAffilatedPersonAndFirmName,
+    [property: JsonProperty(PropertyName = "employeeAnotherIBD")] string EmployeeAnotherIbd,
+    [property: JsonProperty(PropertyName = "relatedEmployeeAnotherIBD")] string RelatedEmployeeAnotherIbd,
+    [property: JsonProperty(PropertyName = "ibdNameEmployedAtOther")] string IbdNameEmployedAtOther,
+    [property: JsonProperty(PropertyName = "ibdNameRelatedtoEmployee")] string IbdNameRelatedtoEmployee,
+    [property: JsonProperty(PropertyName = "relatedOtherIBDFirstName")] string RelatedOtherIbdFirstName,
+    [property: JsonProperty(PropertyName = "relatedOtherIBDLastName")] string RelatedOtherIbdLastName,
+    [property: JsonProperty(PropertyName = "relatedOtherIBDRelationship")] string RelatedOtherIbdRelationship,
+    [property: JsonProperty(PropertyName = "maritalStatus")] string MaritalStatus,
+    [property: JsonProperty(PropertyName = "jobTitle")] string JobTitle,
+    [property: JsonProperty(PropertyName = "targetPortfolioSource")] string TargetPortfolioSource,
+    [property: JsonProperty(PropertyName = "targetPortfolioAccuracy")] decimal TargetPortfolioAccuracy,
+    [property: JsonProperty(PropertyName = "targetPortfolioDetermined")] bool TargetPortfolioDetermined,
+    [property: JsonProperty(PropertyName = "notCloseToRetirement")] bool NotCloseToRetirement,
+    [property: JsonProperty(PropertyName = "networth")] PersonNetworth Networth,
+    [property: JsonProperty(PropertyName = "hasAdvisedAccounts")] string HasAdvisedAccounts,
+    [property: JsonProperty(PropertyName = "secAffiliatedEmployeeFamily")] string SecAffiliatedEmployeeFamily,
+    [property: JsonProperty(PropertyName = "isSpouseDefaultBeneficiary")] bool IsSpouseDefaultBeneficiary,
+    [property: JsonProperty(PropertyName = "relationship")] string Relationship,
+    [property: JsonProperty(PropertyName = "isClientAgreementSigned")] bool IsClientAgreementSigned,
+    [property: JsonProperty(PropertyName = "retired")] bool Retired,
+    [property: JsonProperty(PropertyName = "ageAsInt")] int AgeAsInt,
+    [property: JsonProperty(PropertyName = "emailAddress")] string EmailAddress,
+    [property: JsonProperty(PropertyName = "userRetirementRange")] string UserRetirementRange,
+    [property: JsonProperty(PropertyName = "secAffiliatedPersonFullName")] string SecAffiliatedPersonFullName,
+    [property: JsonProperty(PropertyName = "userInputIncomeValue")] decimal UserInputIncomeValue,
+    [property: JsonProperty(PropertyName = "age")] decimal Age,
+    [property: JsonProperty(PropertyName = "userRiskTolerance")] string UserRiskTolerance,
+    [property: JsonProperty(PropertyName = "isRetired")] bool IsRetired,
+    [property: JsonProperty(PropertyName = "countryCode")] string CountryCode
+);
+
+public record PersonName(
+    [property: JsonProperty(PropertyName = "firstName")] string FirstName,
+    [property: JsonProperty(PropertyName = "middleName")] string MiddleName,
+    [property: JsonProperty(PropertyName = "salutation")] string Salutation,
+    [property: JsonProperty(PropertyName = "suffix")] string Suffix,
+    [property: JsonProperty(PropertyName = "lastName")] string LastName
+);
+
+public record PersonDate(
+    [property: JsonProperty(PropertyName = "year")] string Year,
+    [property: JsonProperty(PropertyName = "month")] string Month,
+    [property: JsonProperty(PropertyName = "day")] string Day,
+    [property: JsonProperty(PropertyName = "empty")] bool Empty
+);
+
+public record PersonNetworth(
+    [property: JsonProperty(PropertyName = "calculatedValuePreference")] string CalculatedValuePreference,
+    [property: JsonProperty(PropertyName = "userInputNetworth")] decimal UserInputNetworth,
+    [property: JsonProperty(PropertyName = "netWorth")] decimal NetWorth
+);

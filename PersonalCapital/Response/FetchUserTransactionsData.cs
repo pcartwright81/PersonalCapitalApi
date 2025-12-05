@@ -1,35 +1,16 @@
-﻿using System.Collections.Generic;
-using Newtonsoft.Json;
+﻿﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 
-namespace PersonalCapital.Response
-{
-    public class FetchUserTransactionsData
-    {
-        [JsonProperty(PropertyName = "intervalType")]
-        public string IntervalType { get; set; }
+namespace PersonalCapital.Response;
 
-        [JsonProperty(PropertyName = "endDate")]
-        public string EndDate { get; set; }
-
-        [JsonProperty(PropertyName = "startDate")]
-        public string StartDate { get; set; }
-
-        [JsonProperty(PropertyName = "moneyIn")]
-        public decimal MoneyIn { get; set; }
-
-        [JsonProperty(PropertyName = "netCashflow")]
-        public decimal NetCashflow { get; set; }
-
-        [JsonProperty(PropertyName = "averageOut")]
-        public decimal AverageOut { get; set; }
-
-        [JsonProperty(PropertyName = "moneyOut")]
-        public decimal MoneyOut { get; set; }
-
-        [JsonProperty(PropertyName = "averageIn")]
-        public decimal AverageIn { get; set; }
-
-        [JsonProperty(PropertyName = "transactions")]
-        public List<Transaction> Transactions { get; set; }
-    }
-}
+public record FetchUserTransactionsData(
+    [property: JsonProperty(PropertyName = "intervalType")] string IntervalType,
+    [property: JsonProperty(PropertyName = "endDate")] string EndDate,
+    [property: JsonProperty(PropertyName = "startDate")] string StartDate,
+    [property: JsonProperty(PropertyName = "moneyIn")] decimal MoneyIn,
+    [property: JsonProperty(PropertyName = "netCashflow")] decimal NetCashflow,
+    [property: JsonProperty(PropertyName = "averageOut")] decimal AverageOut,
+    [property: JsonProperty(PropertyName = "moneyOut")] decimal MoneyOut,
+    [property: JsonProperty(PropertyName = "averageIn")] decimal AverageIn,
+    [property: JsonProperty(PropertyName = "transactions")] List<Transaction> Transactions
+);

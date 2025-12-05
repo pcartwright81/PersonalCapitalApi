@@ -1,9 +1,5 @@
-﻿namespace PersonalCapital.Exceptions
+﻿namespace PersonalCapital.Exceptions;
+
+public class IncorrectPasswordException(string message) : PersonalCapitalException(message)
 {
-    public class IncorrectPasswordException : PersonalCapitalException
-    {
-        public IncorrectPasswordException(string message) : base(message)
-        {
-        }
-    }
 }

@@ -1,51 +1,45 @@
 ﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using PersonalCapital.Extensions;
+using Newtonsoft.Json.Converters;
 
-namespace PersonalCapital.Response
-{
-    public class UserMessageData
-    {
-        [JsonProperty(PropertyName = "template")]
-        public string Template { get; set; }
+namespace PersonalCapital.Response;
 
-        [JsonProperty(PropertyName = "summary")]
-        public string Summary { get; set; }
 
-        [JsonConverter(typeof(UnixEpochConverter))]
-        [JsonProperty(PropertyName = "updatedTime", NullValueHandling = NullValueHandling.Ignore)]
-        public DateTime? UpdatedTime { get; set; }
 
-        [JsonConverter(typeof(UnixEpochConverter))]
-        [JsonProperty(PropertyName = "lastViewedTime", NullValueHandling = NullValueHandling.Ignore)]
-        public DateTime? LastViewedTime { get; set; }
+// 4. User Message (Your specific record, corrected)
+public record UserMessageData(
+    [property: JsonProperty("template")] string Template,
+    [property: JsonProperty("summary")] string Summary,
+    [property: JsonProperty("title")] string Title,
 
-        [JsonProperty(PropertyName = "isValid")]
-        public bool IsValid { get; set; }
+    // CRITICAL FIX: Must be Long (Int64) to handle 1000051150982
+    [property: JsonProperty("userMessageId")] long UserMessageId,
 
-        //[JsonProperty(PropertyName = "resources")]
-        //public List<?> Resources { get; set; }
+    [property: JsonProperty("priority")] string Priority,
+    [property: JsonProperty("component")] string Component,
+    [property: JsonProperty("viewTemplate")] string ViewTemplate,
+    [property: JsonProperty("rank")] int Rank,
+    [property: JsonProperty("isValid")] bool IsValid,
+    [property: JsonProperty("isStale")] bool IsStale,
 
-        [JsonProperty(PropertyName = "title")] public string Title { get; set; }
+    // Lists
+    [property: JsonProperty("displayLocations")] List<string> DisplayLocations,
+    [property: JsonProperty("resources")] List<ResourceData> Resources,
+    [property: JsonProperty("action")] List<ActionData> Action,
 
-        [JsonProperty(PropertyName = "userMessageId")]
-        public int UserMessageId { get; set; }
+    // Dates
+    // Note: UnixDateTimeConverter is standard in Newtonsoft. 
+    // If "UnixEpochConverter" is a custom class of yours, change the type inside typeof().
+    [property: JsonConverter(typeof(UnixDateTimeConverter))]
+    [property: JsonProperty("updatedTime", NullValueHandling = NullValueHandling.Ignore)]
+    DateTime? UpdatedTime,
 
-        [JsonProperty(PropertyName = "priority")]
-        public string Priority { get; set; }
+    [property: JsonConverter(typeof(UnixDateTimeConverter))]
+    [property: JsonProperty("lastViewedTime", NullValueHandling = NullValueHandling.Ignore)]
+    DateTime? LastViewedTime,
 
-        [JsonProperty(PropertyName = "component")]
-        public string Component { get; set; }
-
-        [JsonProperty(PropertyName = "action")]
-        public List<ActionData> Action { get; set; }
-
-        [JsonConverter(typeof(UnixEpochConverter))]
-        [JsonProperty(PropertyName = "createdTime", NullValueHandling = NullValueHandling.Ignore)]
-        public DateTime? CreatedTime { get; set; }
-
-        [JsonProperty(PropertyName = "isStale")]
-        public bool IsStale { get; set; }
-    }
-}
+    [property: JsonConverter(typeof(UnixDateTimeConverter))]
+    [property: JsonProperty("createdTime", NullValueHandling = NullValueHandling.Ignore)]
+    DateTime? CreatedTime
+);
