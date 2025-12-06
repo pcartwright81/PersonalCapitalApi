@@ -7,46 +7,24 @@ using PersonalCapital.ConsoleApp.Extensions;
 using PersonalCapital.Exceptions;
 using PersonalCapital.Request;
 
-const string sessionFile = "PersonalCapitalSession_new.bin";
+const string sessionFile = "PersonalCapitalSession.json";
 
-var host = Host.CreateDefaultBuilder(args)
-    .ConfigureLogging(logging =>
-    {
-        logging.ClearProviders();
-        logging.AddConsole();
-    })
-    .ConfigureServices((_, services) =>
-    {
-        services.AddSingleton<PersonalCapitalClient>();
-    })
-    .Build();
+IHost host = InitializeApp(args);
 
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
 var config = host.Services.GetRequiredService<IConfiguration>();
+var usernamePassword = InitializeUsernamePassword();
 
-// Get credentials from User Secrets or environment variables via IConfiguration
-var username = config["PEW_EMAIL"];
-var password = config["PEW_PASSWORD"];
-
-if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+if(usernamePassword.username == null || usernamePassword.password == null)
 {
-    if (string.IsNullOrWhiteSpace(username))
-    {
-        logger.LogError("Username 'PEW_EMAIL' is not set. Use 'dotnet user-secrets set \"PEW_EMAIL\" \"your-email\"' to configure it.");
-    }
-    if (string.IsNullOrWhiteSpace(password))
-    {
-        logger.LogError("Password 'PEW_PASSWORD' is not set. Use 'dotnet user-secrets set \"PEW_PASSWORD\" \"your-password\"' to configure it.");
-    }
-    Pause();
     return;
 }
 
-logger.LogInformation("Attempting log in for {Username}", username);
+logger.LogInformation("Attempting log in for {Username}", usernamePassword.username);
 
 using var pcClient = host.Services.GetRequiredService<PersonalCapitalClient>();
 
-var loggedIn = await HandleLoginAsync(pcClient, username, password);
+var loggedIn = await HandleLoginAsync(pcClient, usernamePassword.username, usernamePassword.password);
 
 if (!loggedIn)
 {
@@ -155,4 +133,41 @@ void Pause()
 {
     Console.Write("Press any key to continue...");
     Console.ReadKey(true);
+}
+
+static IHost InitializeApp(string[] args)
+{
+    return Host.CreateDefaultBuilder(args)
+        .ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+        })
+        .ConfigureServices((_, services) =>
+        {
+            services.AddSingleton<PersonalCapitalClient>();
+        })
+        .Build();
+}
+
+(string? username, string? password) InitializeUsernamePassword()
+{
+    // Get credentials from User Secrets or environment variables via IConfiguration
+    var username = config["PEW_EMAIL"];
+    var password = config["PEW_PASSWORD"];
+
+
+    if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            logger.LogError("Username 'PEW_EMAIL' is not set. Use 'dotnet user-secrets set \"PEW_EMAIL\" \"your-email\"' to configure it.");
+        }
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            logger.LogError("Password 'PEW_PASSWORD' is not set. Use 'dotnet user-secrets set \"PEW_PASSWORD\" \"your-password\"' to configure it.");
+        }
+        Pause();
+    }
+    return (username, password);
 }

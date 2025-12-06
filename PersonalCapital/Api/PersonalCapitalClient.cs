@@ -31,8 +31,20 @@ public class PersonalCapitalClient : IDisposable
         _client.DefaultRequestHeaders.Add("Origin", "https://participant.empower-retirement.com");
 
         // 2. Standard Browser Headers
-        _client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-        _client.DefaultRequestHeaders.Add("Accept", "application/json, text/plain, */*");
+        _client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36");
+        _client.DefaultRequestHeaders.Add("Accept", "application/json, text/javascript, */*; q=0.01");
+
+        // 3. Security Headers (Chrome-specific)
+        _client.DefaultRequestHeaders.Add("sec-ch-ua", "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"");
+        _client.DefaultRequestHeaders.Add("sec-ch-ua-mobile", "?0");
+        _client.DefaultRequestHeaders.Add("sec-ch-ua-platform", "\"Windows\"");
+        _client.DefaultRequestHeaders.Add("sec-fetch-dest", "empty");
+        _client.DefaultRequestHeaders.Add("sec-fetch-mode", "cors");
+        _client.DefaultRequestHeaders.Add("sec-fetch-site", "same-site");
+
+        // 4. Cache control
+        _client.DefaultRequestHeaders.Add("cache-control", "no-cache");
+        _client.DefaultRequestHeaders.Add("pragma", "no-cache");
     }
 
     public CookieContainer CookieContainer
@@ -69,12 +81,12 @@ public class PersonalCapitalClient : IDisposable
         return await _authenticator.Login(username, password);
     }
 
-    public async Task<HeaderOnlyResponse> SendTwoFactorChallenge(TwoFactorVerificationMode mode)
+    public async Task<EmpowerApiResponse<object?>> SendTwoFactorChallenge(TwoFactorVerificationMode mode)
     {
         return await _authenticator.SendTwoFactorChallenge(mode);
     }
 
-    public async Task<HeaderOnlyResponse> TwoFactorAuthenticate(TwoFactorVerificationMode mode, string code)
+    public async Task<EmpowerApiResponse<object?>> TwoFactorAuthenticate(TwoFactorVerificationMode mode, string code)
     {
         return await _authenticator.TwoFactorAuthenticate(mode, code);
     }
@@ -87,17 +99,20 @@ public class PersonalCapitalClient : IDisposable
         payload.lastServerChangeId = "-1";
         payload.csrf = _sessionManager.Csrf;
         payload.apiClient = "WEB";
-        var httpMessage = await _client.PostMultipartData(url, (object)payload);
+
+        // Use HTTP form URL encoding instead of multipart
+        var httpMessage = await _client.PostHttpEncodedData(url, (object)payload);
         httpMessage.EnsureSuccessStatusCode();
         var response = await httpMessage.Content.ReadAsAsync<EmpowerApiResponse<T>>();
 #if DEBUG
-        if(response.Header.AuthLevel == "NONE")
+        if (response.Header.AuthLevel == "NONE")
         {
             throw new UnauthorizedAccessException("The session is not authenticated.");
         }
 #endif
         return response;
     }
+
 
 
     #region Mapped Fetch/Get Api Methods

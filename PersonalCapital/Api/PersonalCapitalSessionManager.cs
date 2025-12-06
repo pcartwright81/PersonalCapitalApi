@@ -1,7 +1,8 @@
 ﻿using Newtonsoft.Json;
+using PersonalCapital.Models;
 using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -33,8 +34,12 @@ public class PersonalCapitalSessionManager(HttpClient client, CookieContainer co
 
     public void PersistSession(string filename)
     {
-        var cookies = CookieContainer.GetAllCookies();
-        var json = JsonConvert.SerializeObject(cookies, Formatting.Indented);
+        var sessionData = new OfflineSessionData
+        {
+            Csrf = Csrf,
+            Cookies = CookieContainer.GetAllCookies().Cast<Cookie>().ToList()
+        };
+        var json = JsonConvert.SerializeObject(sessionData, Formatting.Indented);
         File.WriteAllText(filename, json);
     }
 
@@ -43,15 +48,30 @@ public class PersonalCapitalSessionManager(HttpClient client, CookieContainer co
         if (!File.Exists(filename)) return;
 
         var json = File.ReadAllText(filename);
-        var cookies = JsonConvert.DeserializeObject<List<Cookie>>(json);
+        var sessionData = JsonConvert.DeserializeObject<OfflineSessionData>(json);
 
-        var newCookieContainer = new CookieContainer();
-        foreach (var cookie in cookies)
+        if (sessionData == null) return;
+        // Restore CSRF
+        if (!string.IsNullOrEmpty(sessionData.Csrf))
         {
-            // Ensure cookies aren't expired on restore
+            Csrf = sessionData.Csrf;
+        }
+
+        // Restore cookies
+        var newCookieContainer = new CookieContainer();
+        foreach (var cookie in sessionData.Cookies)
+        {
             if (cookie.Expires < DateTime.Now) cookie.Expires = DateTime.Now.AddYears(1);
             newCookieContainer.Add(cookie);
         }
         CookieContainer = newCookieContainer;
+    }
+
+    public void UpdateCsrf(string csrf)
+    {
+        if (!string.IsNullOrEmpty(csrf))
+        {
+            Csrf = csrf;
+        }
     }
 }
