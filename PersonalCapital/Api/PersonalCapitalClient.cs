@@ -100,22 +100,17 @@ public class PersonalCapitalClient : IDisposable
         payload.csrf = _sessionManager.Csrf;
         payload.apiClient = "WEB";
 
-        // Use HTTP form URL encoding instead of multipart
-        var httpMessage = await _client.PostHttpEncodedData(url, (object)payload);
+        var httpMessage = await _client.PostMultipartData(url, (object)payload);
         httpMessage.EnsureSuccessStatusCode();
         var response = await httpMessage.Content.ReadAsAsync<EmpowerApiResponse<T>>();
 #if DEBUG
-        if (response.Header.AuthLevel == "NONE")
+        if (response.Header.AuthLevel == Constants.AuthLevel.None)
         {
             throw new UnauthorizedAccessException("The session is not authenticated.");
         }
 #endif
         return response;
     }
-
-
-
-    #region Mapped Fetch/Get Api Methods
 
     public Task<EmpowerApiResponse<FetchAccountsData>> FetchAccounts(object? data = null)
     {
@@ -156,6 +151,4 @@ public class PersonalCapitalClient : IDisposable
     {
         return Fetch<List<FetchTagsData>>(@"transactiontag/getTags");
     }
-
-    #endregion
 }

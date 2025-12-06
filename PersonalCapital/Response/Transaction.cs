@@ -35,8 +35,7 @@ public record Transaction(
     [property: JsonProperty(PropertyName = "transactionDate")] DateTime TransactionDate,
     [property: JsonProperty(PropertyName = "transactionType")] string TransactionType,
     [property: JsonProperty(PropertyName = "accountId")] string AccountId,
-    [property: JsonConverter(typeof(NanToNullConverter))]
-    [property: JsonProperty(PropertyName = "originalAmount")] decimal? OriginalAmount,
+    [property: JsonConverter(typeof(NanToNullConverter))] [property: JsonProperty(PropertyName = "originalAmount")] decimal? OriginalAmount,
     [property: JsonProperty(PropertyName = "isCost")] bool IsCost,
     [property: JsonProperty(PropertyName = "userAccountId")] long UserAccountId,
     [property: JsonProperty(PropertyName = "simpleDescription")] string SimpleDescription,

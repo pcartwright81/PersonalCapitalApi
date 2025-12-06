@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using PersonalCapital.Api.Constants;
+using System.Collections.Generic;
 
 namespace PersonalCapital.Response
 {
@@ -17,7 +19,7 @@ namespace PersonalCapital.Response
         [property: JsonProperty("qualifiedLead")] bool QualifiedLead,
         [property: JsonProperty("developer")] bool Developer,
         [property: JsonProperty("personId")] long PersonId,
-        [property: JsonProperty("authLevel")] string AuthLevel,
+        [JsonConverter(typeof(StringEnumConverter))] [property: JsonProperty("authLevel")] AuthLevel AuthLevel,
         [property: JsonProperty("username")] string Username,
         [property: JsonProperty("status")] string Status
     );

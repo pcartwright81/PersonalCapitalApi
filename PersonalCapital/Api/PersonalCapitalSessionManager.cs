@@ -10,10 +10,10 @@ using System.Threading.Tasks;
 
 namespace PersonalCapital.Api;
 
-public class PersonalCapitalSessionManager(HttpClient client, CookieContainer cookieContainer)
+public partial class PersonalCapitalSessionManager(HttpClient client, CookieContainer cookieContainer)
 {
     private const string BaseUrl = "https://pc-api.empower-retirement.com/";
-    private static readonly Regex CsrfRegex = new("window.csrf ='([a-f0-9-]+)'", RegexOptions.Compiled);
+    private static readonly Regex CsrfRegex = MyRegex();
 
     public CookieContainer CookieContainer { get; private set; } = cookieContainer;
     public string Csrf { get; private set; }
@@ -37,7 +37,7 @@ public class PersonalCapitalSessionManager(HttpClient client, CookieContainer co
         var sessionData = new OfflineSessionData
         {
             Csrf = Csrf,
-            Cookies = CookieContainer.GetAllCookies().Cast<Cookie>().ToList()
+            Cookies = CookieContainer.GetAllCookies().Cast<Cookie>()
         };
         var json = JsonConvert.SerializeObject(sessionData, Formatting.Indented);
         File.WriteAllText(filename, json);
@@ -74,4 +74,7 @@ public class PersonalCapitalSessionManager(HttpClient client, CookieContainer co
             Csrf = csrf;
         }
     }
+
+    [GeneratedRegex("window.csrf ='([a-f0-9-]+)'", RegexOptions.Compiled)]
+    private static partial Regex MyRegex();
 }

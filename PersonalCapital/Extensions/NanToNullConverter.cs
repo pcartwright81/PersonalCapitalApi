@@ -12,11 +12,11 @@ public class NanToNullConverter : JsonConverter<decimal?>
 
     public override decimal? ReadJson(JsonReader reader, Type objectType, decimal? existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
-        if (reader.TokenType == JsonToken.String)
+        if (reader.TokenType == JsonToken.String &&
+            reader.Value is string value &&
+            value.Equals("nan", StringComparison.OrdinalIgnoreCase))
         {
-            var value = (string)reader.Value;
-            if (value.Equals("nan", StringComparison.OrdinalIgnoreCase))
-                return null;
+            return null;
         }
 
         return serializer.Deserialize<decimal?>(reader);

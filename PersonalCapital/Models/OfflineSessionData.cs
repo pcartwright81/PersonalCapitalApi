@@ -6,5 +6,5 @@ namespace PersonalCapital.Models;
 public class OfflineSessionData
 {
     public required string Csrf { get; set; }
-    public required List<Cookie> Cookies { get; set; }
+    public required IEnumerable<Cookie> Cookies { get; set; }
 }
