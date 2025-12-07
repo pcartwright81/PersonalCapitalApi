@@ -13,5 +13,5 @@ public record AuthenticationData(
     [property: JsonProperty("userName")] string UserName,
     [property: JsonProperty("password")] string Password,
     [property: JsonProperty("flowName")] string FlowName,
-    [property: JsonProperty("accu")] string Accu
-);
+    [property: JsonProperty("accu")] string Accu,
+    [property: JsonProperty("requestSrc")] string RequestSrc);

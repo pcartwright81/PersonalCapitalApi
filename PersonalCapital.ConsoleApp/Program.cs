@@ -23,16 +23,26 @@ if (logger.IsEnabled(LogLevel.Information))
     logger.LogInformation("Attempting log in for {Username}", username);
 }
 
-var authResponse = await pcClient.Login(username, password);
+var authenticated = await pcClient.AuthenticateAsync(
+    username,
+    password,
+    twoFactorCodeCallback: async () =>
+    {
+        logger.LogInformation("2FA code sent. Please enter the code:");
+        Console.Write("Enter 2FA code: ");
+        return await Task.FromResult(Console.ReadLine() ?? string.Empty);
+    },
+    mode: TwoFactorVerificationMode.SMS
+);
 
-if (!authResponse.Success)
+if (!authenticated)
 {
-    logger.LogError("Login failed. Please check credentials and 2FA code if prompted.");
+    logger.LogError("Authentication failed. Please check credentials and 2FA code.");
     Pause();
     return;
 }
 
-logger.LogInformation("Logged in Successfully");
+logger.LogInformation("Authentication successful!");
 
 var bills = await pcClient.FetchBills();
 

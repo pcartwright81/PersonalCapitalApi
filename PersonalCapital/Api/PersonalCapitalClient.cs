@@ -36,7 +36,7 @@ public class PersonalCapitalClient : IDisposable
 
         _participantClient = new HttpClient(_clientHandler)
         {
-            BaseAddress = new Uri("https://participant.empower-retirement.com/")
+            BaseAddress = new Uri(BaseUrl)
         };
 
         SetupHeaders(_client);
@@ -71,21 +71,52 @@ public class PersonalCapitalClient : IDisposable
         CookieContainer = _sessionManager.CookieContainer;
     }
 
-    public async Task<AuthResponse> Login(string username, string password, CookieContainer? sessionCookies = null)
+    /// <summary>
+    /// Authenticates with Personal Capital using the complete flow including 2FA
+    /// </summary>
+    /// <param name="username">Personal Capital username/email</param>
+    /// <param name="password">Personal Capital password</param>
+    /// <param name="twoFactorCodeCallback">Callback function to retrieve the 2FA code from the user</param>
+    /// <param name="mode">Two-factor verification mode (SMS or Email)</param>
+    /// <returns>True if authentication was successful, false otherwise</returns>
+    public async Task<bool> AuthenticateAsync(
+    string username,
+    string password,
+    Func<Task<string>> twoFactorCodeCallback,
+    TwoFactorVerificationMode mode = TwoFactorVerificationMode.SMS)
     {
-        if (sessionCookies != null) CookieContainer = sessionCookies;
-        return await _authenticator.Login(username, password);
+        try
+        {
+            // Step 1: Login with username and password
+            var authResponse = await _authenticator.Login(username, password);
+
+            // Step 2: Send 2FA challenge (accu should come from cookies after login)
+            var sendSuccess = await _authenticator.SendTwoFactorChallenge(mode);
+            if (!sendSuccess)
+            {
+                return false;
+            }
+
+            // Step 3: Get 2FA code from callback
+            var code = await twoFactorCodeCallback();
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return false;
+            }
+
+            // Step 4: Verify 2FA code
+            var verifySuccess = await _authenticator.TwoFactorAuthenticate(mode, code);
+
+            return verifySuccess;
+        }
+        catch (Exception ex)
+        {
+            //_logger.LogError(ex, "Authentication failed");
+            return false;
+        }
     }
 
-    public async Task<EmpowerApiResponse<object?>> SendTwoFactorChallenge(TwoFactorVerificationMode mode)
-    {
-        return await _authenticator.SendTwoFactorChallenge(mode);
-    }
-
-    public async Task<EmpowerApiResponse<object?>> TwoFactorAuthenticate(TwoFactorVerificationMode mode, string code)
-    {
-        return await _authenticator.TwoFactorAuthenticate(mode, code);
-    }
 
     public async Task<EmpowerApiResponse<T>> Fetch<T>(string url, object? data = null)
     {

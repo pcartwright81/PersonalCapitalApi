@@ -1,8 +1,10 @@
-﻿using PersonalCapital.Extensions;
-using PersonalCapital.Request;
+﻿using PersonalCapital.Request;
 using PersonalCapital.Response;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
 
 namespace PersonalCapital.Api;
@@ -12,6 +14,7 @@ public class PersonalCapitalAuthenticator(HttpClient client, PersonalCapitalSess
     public async Task<AuthResponse> Login(string username, string password)
     {
         await sessionManager.InitializeCsrf();
+        Console.WriteLine($"Initial CSRF: {sessionManager.Csrf}");
 
         var authData = new AuthenticationData(
            DeviceFingerPrint: "1a7c37451da15092050556ea76dea4f8",
@@ -24,55 +27,128 @@ public class PersonalCapitalAuthenticator(HttpClient client, PersonalCapitalSess
            UserName: username,
            Password: password,
            FlowName: "mfa",
-           Accu: "MYERIRA"
+           Accu: "MYERIRA",
+           RequestSrc: "empower_browser"
        );
 
         var httpMessage = await client.PostAsJsonAsync("auth/multiauth/noauth/authenticate", authData);
-        var response = await httpMessage.Content.ReadAsAsync<AuthResponse>();
+        Console.WriteLine($"Login Response Status: {httpMessage.StatusCode}");
 
-        // Note: CSRF token doesn't change during authentication
-        // Authentication happens via session cookies, not CSRF rotation
+        var responseContent = await httpMessage.Content.ReadAsStringAsync();
+        Console.WriteLine($"Login Response Body: {responseContent}");
+
+        var response = await httpMessage.Content.ReadAsAsync<AuthResponse>();
+        Console.WriteLine($"IdToken present: {!string.IsNullOrEmpty(response.IdToken)}");
+        Console.WriteLine($"Success: {response.Success}");
+
+        // Complete authentication with the idToken
+        if (!string.IsNullOrEmpty(response.IdToken))
+        {
+            Console.WriteLine("Calling AuthenticateToken...");
+            await AuthenticateToken(response.IdToken);
+            Console.WriteLine("AuthenticateToken completed");
+        }
+        else
+        {
+            Console.WriteLine("WARNING: No IdToken received from login!");
+        }
 
         return response;
     }
 
-    public async Task<EmpowerApiResponse<object?>> SendTwoFactorChallenge(TwoFactorVerificationMode mode)
+    private async Task AuthenticateToken(string idToken)
     {
-        if (string.IsNullOrEmpty(sessionManager.Csrf))
-            throw new InvalidOperationException("User is not logged in. Call Login() before sending a two-factor challenge");
+        Console.WriteLine($"AuthenticateToken - IdToken length: {idToken.Length}");
 
-        var method = mode switch
+        var tokenData = new
         {
-            TwoFactorVerificationMode.SMS => "challengeSms",
-            TwoFactorVerificationMode.EMail => "challengeEmail",
-            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+            deviceFingerPrint = "520cc91e9af663c4c590fff24c3bd777",
+            userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            language = "en-US",
+            hasLiedLanguages = false,
+            hasLiedResolution = false,
+            hasLiedOs = false,
+            hasLiedBrowser = false,
+            flowName = "mfa",
+            accu = "MYERIRA",
+            requestSrc = "empower_browser",
+            idToken,
+            authProvider = "EMPOWER"
         };
 
-        var data = new TwoFactorChallengeRequest(sessionManager.Csrf, "DEVICE_AUTH", "OP", method);
+        var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://ira.empower-retirement.com/participant-web-services/rest/nonauth/authenticateToken")
+        {
+            Content = JsonContent.Create(tokenData)
+        };
 
-        var httpMessage = await client.PostHttpEncodedData($"credential/{method}", data);
-        return await httpMessage.Content.ReadAsAsync<EmpowerApiResponse<object?>>();
+        tokenRequest.Headers.Add("Origin", "https://ira.empower-retirement.com");
+        tokenRequest.Headers.Referrer = new Uri("https://ira.empower-retirement.com/participant/");
+
+        var tokenResponse = await client.SendAsync(tokenRequest);
+        Console.WriteLine($"AuthenticateToken Response Status: {tokenResponse.StatusCode}");
+
+        var tokenResponseContent = await tokenResponse.Content.ReadAsStringAsync();
+        Console.WriteLine($"AuthenticateToken Response: {tokenResponseContent}");
+
+        tokenResponse.EnsureSuccessStatusCode();
     }
 
-    public async Task<EmpowerApiResponse<object?>> TwoFactorAuthenticate(TwoFactorVerificationMode mode, string code)
+
+    public async Task<bool> SendTwoFactorChallenge(TwoFactorVerificationMode mode, string accu = "MYERIRA")
     {
-        if (string.IsNullOrEmpty(sessionManager.Csrf))
-            throw new InvalidOperationException("User is not logged in. Call Login() before authenticating a two-factor challenge");
+        // Get available delivery options
+        var deliveryOptions = await GetDeliveryOptions();
 
-        var method = mode switch
-        {
-            TwoFactorVerificationMode.SMS => "authenticateSms",
-            TwoFactorVerificationMode.EMail => "authenticateEmail",
-            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-        };
+        // Select the appropriate delivery option based on mode
+        var deliveryOption = mode == TwoFactorVerificationMode.SMS
+            ? deliveryOptions.FirstOrDefault(d => d.StartsWith("sms:", StringComparison.OrdinalIgnoreCase))
+            : deliveryOptions.FirstOrDefault(d => d.StartsWith("email:", StringComparison.OrdinalIgnoreCase));
 
-        if (!int.TryParse(code, out var numericCode))
+        if (string.IsNullOrEmpty(deliveryOption))
         {
-            throw new ArgumentException("The provided two-factor code is not a valid number", nameof(code));
+            throw new InvalidOperationException($"No {mode} delivery option available");
         }
 
-        var data = new TwoFactorAuthenticationRequest(sessionManager.Csrf, "DEVICE_AUTH", "OP", numericCode);
-        var httpMessage = await client.PostHttpEncodedData($"credential/{method}", data);
-        return await httpMessage.Content.ReadAsAsync<EmpowerApiResponse<object?>>();
+        var response = await client.PostAsJsonAsync(
+            "/rest/partialauth/mfa/createAndDeliverActivationCode",
+            new
+            {
+                deliveryOption,
+                accu
+            }
+        );
+
+        return response.IsSuccessStatusCode;
     }
+
+
+    public async Task<List<string>> GetDeliveryOptions()
+    {
+        var response = await client.GetAsync("/rest/partialauth/mfa/deliveryOptions");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException($"Failed to get delivery options: {response.StatusCode}");
+        }
+
+        var options = await response.Content.ReadFromJsonAsync<List<string>>();
+        return options ?? new List<string>();
+    }
+
+    public async Task<bool> TwoFactorAuthenticate(
+        TwoFactorVerificationMode mode,
+        string verificationCode)
+    {
+        var response = await client.PostAsJsonAsync(
+            "/rest/partialauth/mfa/verifycode",
+            new
+            {
+                verificationCode,
+                deliveryOptions = mode.ToString().ToLower()
+            }
+        );
+
+        return response.IsSuccessStatusCode;
+    }
+
 }
