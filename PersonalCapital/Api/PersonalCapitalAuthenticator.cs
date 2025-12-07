@@ -15,7 +15,7 @@ public class PersonalCapitalAuthenticator(HttpClient client, PersonalCapitalSess
 
         var authData = new AuthenticationData(
            DeviceFingerPrint: "1a7c37451da15092050556ea76dea4f8",
-           UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+           UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
            Language: "en-US",
            HasLiedLanguages: false,
            HasLiedResolution: false,
@@ -28,13 +28,18 @@ public class PersonalCapitalAuthenticator(HttpClient client, PersonalCapitalSess
        );
 
         var httpMessage = await client.PostAsJsonAsync("auth/multiauth/noauth/authenticate", authData);
-        return await httpMessage.Content.ReadAsAsync<AuthResponse>();
+        var response = await httpMessage.Content.ReadAsAsync<AuthResponse>();
+
+        // Note: CSRF token doesn't change during authentication
+        // Authentication happens via session cookies, not CSRF rotation
+
+        return response;
     }
 
     public async Task<EmpowerApiResponse<object?>> SendTwoFactorChallenge(TwoFactorVerificationMode mode)
     {
         if (string.IsNullOrEmpty(sessionManager.Csrf))
-            throw new InvalidOperationException("User is not logged in. Call Login() before sending a two-factor challenge.");
+            throw new InvalidOperationException("User is not logged in. Call Login() before sending a two-factor challenge");
 
         var method = mode switch
         {
@@ -45,7 +50,6 @@ public class PersonalCapitalAuthenticator(HttpClient client, PersonalCapitalSess
 
         var data = new TwoFactorChallengeRequest(sessionManager.Csrf, "DEVICE_AUTH", "OP", method);
 
-        // Send data as HTTP Encoded
         var httpMessage = await client.PostHttpEncodedData($"credential/{method}", data);
         return await httpMessage.Content.ReadAsAsync<EmpowerApiResponse<object?>>();
     }
@@ -53,7 +57,7 @@ public class PersonalCapitalAuthenticator(HttpClient client, PersonalCapitalSess
     public async Task<EmpowerApiResponse<object?>> TwoFactorAuthenticate(TwoFactorVerificationMode mode, string code)
     {
         if (string.IsNullOrEmpty(sessionManager.Csrf))
-            throw new InvalidOperationException("User is not logged in. Call Login() before authenticating a two-factor challenge.");
+            throw new InvalidOperationException("User is not logged in. Call Login() before authenticating a two-factor challenge");
 
         var method = mode switch
         {
@@ -64,7 +68,7 @@ public class PersonalCapitalAuthenticator(HttpClient client, PersonalCapitalSess
 
         if (!int.TryParse(code, out var numericCode))
         {
-            throw new ArgumentException("The provided two-factor code is not a valid number.", nameof(code));
+            throw new ArgumentException("The provided two-factor code is not a valid number", nameof(code));
         }
 
         var data = new TwoFactorAuthenticationRequest(sessionManager.Csrf, "DEVICE_AUTH", "OP", numericCode);

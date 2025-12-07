@@ -15,36 +15,33 @@ public class PersonalCapitalClient : IDisposable
     private const string BaseApiUrl = BaseUrl + "api/";
 
     private readonly HttpClient _client;
+    private readonly HttpClient _participantClient;
     private readonly HttpClientHandler _clientHandler;
     private readonly PersonalCapitalSessionManager _sessionManager;
     private readonly PersonalCapitalAuthenticator _authenticator;
+    private readonly string _sessionFilePath;
 
-    public PersonalCapitalClient()
+    public PersonalCapitalClient(string sessionFilePath, bool useFiddlerProxy)
     {
-        _clientHandler = new HttpClientHandler { UseCookies = true, CookieContainer = new CookieContainer() };
+        _clientHandler = new HttpClientHandler
+        {
+            Proxy = new WebProxy("http://127.0.0.1:8888"), // Fiddler's default port
+            UseProxy = useFiddlerProxy,
+            UseCookies = true,
+            CookieContainer = new CookieContainer()
+        };
         _client = new HttpClient(_clientHandler) { BaseAddress = new Uri(BaseApiUrl) };
-        _sessionManager = new PersonalCapitalSessionManager(_client, _clientHandler.CookieContainer);
+        _sessionManager = new PersonalCapitalSessionManager(_client, _clientHandler.CookieContainer, BaseUrl);
         _authenticator = new PersonalCapitalAuthenticator(_client, _sessionManager);
 
-        // 1. Critical Headers for Session Validation
-        _client.DefaultRequestHeaders.Referrer = new Uri("https://participant.empower-retirement.com/");
-        _client.DefaultRequestHeaders.Add("Origin", "https://participant.empower-retirement.com");
+        _participantClient = new HttpClient(_clientHandler)
+        {
+            BaseAddress = new Uri("https://participant.empower-retirement.com/")
+        };
 
-        // 2. Standard Browser Headers
-        _client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36");
-        _client.DefaultRequestHeaders.Add("Accept", "application/json, text/javascript, */*; q=0.01");
-
-        // 3. Security Headers (Chrome-specific)
-        _client.DefaultRequestHeaders.Add("sec-ch-ua", "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"");
-        _client.DefaultRequestHeaders.Add("sec-ch-ua-mobile", "?0");
-        _client.DefaultRequestHeaders.Add("sec-ch-ua-platform", "\"Windows\"");
-        _client.DefaultRequestHeaders.Add("sec-fetch-dest", "empty");
-        _client.DefaultRequestHeaders.Add("sec-fetch-mode", "cors");
-        _client.DefaultRequestHeaders.Add("sec-fetch-site", "same-site");
-
-        // 4. Cache control
-        _client.DefaultRequestHeaders.Add("cache-control", "no-cache");
-        _client.DefaultRequestHeaders.Add("pragma", "no-cache");
+        SetupHeaders(_client);
+        SetupHeaders(_participantClient);
+        _sessionFilePath = sessionFilePath;
     }
 
     public CookieContainer CookieContainer
@@ -58,24 +55,23 @@ public class PersonalCapitalClient : IDisposable
     public void Dispose()
     {
         _client.Dispose();
+        _participantClient.Dispose();
         _clientHandler.Dispose();
         GC.SuppressFinalize(this);
     }
 
-    public void PersistSession(string filename)
+    public void PersistSession()
     {
-        _sessionManager.PersistSession(filename);
+        _sessionManager.PersistSession(_sessionFilePath);
     }
 
-    public void RestoreSession(string filename)
+    public void RestoreSession()
     {
-        _sessionManager.RestoreSession(filename);
-        // After restoring, the client's cookie container needs to be updated
+        _sessionManager.RestoreSession(_sessionFilePath);
         CookieContainer = _sessionManager.CookieContainer;
     }
 
-    public async Task<AuthResponse> Login(string username, string password,
-        CookieContainer? sessionCookies = null)
+    public async Task<AuthResponse> Login(string username, string password, CookieContainer? sessionCookies = null)
     {
         if (sessionCookies != null) CookieContainer = sessionCookies;
         return await _authenticator.Login(username, password);
@@ -93,7 +89,8 @@ public class PersonalCapitalClient : IDisposable
 
     public async Task<EmpowerApiResponse<T>> Fetch<T>(string url, object? data = null)
     {
-        if (string.IsNullOrEmpty(Csrf)) throw new InvalidOperationException("User is not logged in. Call Login() first.");
+        if (string.IsNullOrEmpty(_sessionManager.Csrf))
+            throw new InvalidOperationException("User is not logged in. Call Login() first");
 
         var payload = (data ?? new { }).ToDynamic();
         payload.lastServerChangeId = "-1";
@@ -106,11 +103,13 @@ public class PersonalCapitalClient : IDisposable
 #if DEBUG
         if (response.Header.AuthLevel == Constants.AuthLevel.None)
         {
-            throw new UnauthorizedAccessException("The session is not authenticated.");
+            throw new UnauthorizedAccessException("The session is not authenticated");
         }
 #endif
         return response;
     }
+
+    #region Mapped Fetch/Get Api Methods
 
     public Task<EmpowerApiResponse<FetchAccountsData>> FetchAccounts(object? data = null)
     {
@@ -150,5 +149,21 @@ public class PersonalCapitalClient : IDisposable
     public Task<EmpowerApiResponse<List<FetchTagsData>>> FetchTags()
     {
         return Fetch<List<FetchTagsData>>(@"transactiontag/getTags");
+    }
+
+    #endregion
+
+    private static void SetupHeaders(HttpClient client)
+    {
+        client.DefaultRequestHeaders.Referrer = new Uri("https://participant.empower-retirement.com/");
+        client.DefaultRequestHeaders.Add("Origin", "https://participant.empower-retirement.com");
+        client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36");
+        client.DefaultRequestHeaders.Add("Accept", "application/json, text/plain, */*");
+        client.DefaultRequestHeaders.Add("sec-ch-ua", "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"");
+        client.DefaultRequestHeaders.Add("sec-ch-ua-mobile", "?0");
+        client.DefaultRequestHeaders.Add("sec-ch-ua-platform", "\"Windows\"");
+        client.DefaultRequestHeaders.Add("sec-fetch-dest", "empty");
+        client.DefaultRequestHeaders.Add("sec-fetch-mode", "cors");
+        client.DefaultRequestHeaders.Add("sec-fetch-site", "same-site");
     }
 }

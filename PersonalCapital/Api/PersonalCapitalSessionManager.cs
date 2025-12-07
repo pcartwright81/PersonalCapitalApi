@@ -1,8 +1,7 @@
 ﻿using Newtonsoft.Json;
-using PersonalCapital.Models;
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -10,21 +9,30 @@ using System.Threading.Tasks;
 
 namespace PersonalCapital.Api;
 
-public partial class PersonalCapitalSessionManager(HttpClient client, CookieContainer cookieContainer)
+public partial class PersonalCapitalSessionManager(HttpClient client, CookieContainer cookieContainer, string baseUrl)
 {
-    private const string BaseUrl = "https://pc-api.empower-retirement.com/";
-    private static readonly Regex CsrfRegex = MyRegex();
+
+    [GeneratedRegex(@"window\.csrf ='([a-f0-9-]+)'", RegexOptions.Compiled)]
+    private static partial Regex CsrfRegex();
 
     public CookieContainer CookieContainer { get; private set; } = cookieContainer;
-    public string Csrf { get; private set; }
+    public string Csrf { get; private set; } = string.Empty;
+
+    public void UpdateCsrf(string csrf)
+    {
+        if (!string.IsNullOrEmpty(csrf))
+        {
+            Csrf = csrf;
+        }
+    }
 
     public async Task InitializeCsrf()
     {
-        var httpMessage = await client.GetAsync(BaseUrl);
+        var httpMessage = await client.GetAsync(baseUrl);
         httpMessage.EnsureSuccessStatusCode();
 
         var result = await httpMessage.Content.ReadAsStringAsync();
-        var match = CsrfRegex.Match(result);
+        var match = CsrfRegex().Match(result);
 
         if (match.Success)
         {
@@ -34,10 +42,10 @@ public partial class PersonalCapitalSessionManager(HttpClient client, CookieCont
 
     public void PersistSession(string filename)
     {
-        var sessionData = new OfflineSessionData
+        var sessionData = new
         {
-            Csrf = Csrf,
-            Cookies = CookieContainer.GetAllCookies().Cast<Cookie>()
+            Csrf,
+            Cookies = CookieContainer.GetAllCookies()
         };
         var json = JsonConvert.SerializeObject(sessionData, Formatting.Indented);
         File.WriteAllText(filename, json);
@@ -48,33 +56,51 @@ public partial class PersonalCapitalSessionManager(HttpClient client, CookieCont
         if (!File.Exists(filename)) return;
 
         var json = File.ReadAllText(filename);
-        var sessionData = JsonConvert.DeserializeObject<OfflineSessionData>(json);
 
-        if (sessionData == null) return;
-        // Restore CSRF
-        if (!string.IsNullOrEmpty(sessionData.Csrf))
+        try
         {
-            Csrf = sessionData.Csrf;
-        }
+            var sessionData = JsonConvert.DeserializeObject<dynamic>(json);
 
-        // Restore cookies
-        var newCookieContainer = new CookieContainer();
-        foreach (var cookie in sessionData.Cookies)
-        {
-            if (cookie.Expires < DateTime.Now) cookie.Expires = DateTime.Now.AddYears(1);
-            newCookieContainer.Add(cookie);
+            // Restore CSRF
+            if (sessionData?.Csrf != null)
+            {
+                Csrf = sessionData.Csrf.ToString();
+            }
+
+            // Restore cookies
+            var cookiesJson = sessionData?.Cookies?.ToString();
+            if (!string.IsNullOrEmpty(cookiesJson))
+            {
+                var cookies = JsonConvert.DeserializeObject<List<Cookie>>(cookiesJson);
+                if (cookies != null)
+                {
+                    var newCookieContainer = new CookieContainer();
+                    foreach (var cookie in cookies)
+                    {
+                        // Ensure cookies aren't expired on restore
+                        if (cookie.Expires < DateTime.Now)
+                            cookie.Expires = DateTime.Now.AddYears(1);
+                        newCookieContainer.Add(cookie);
+                    }
+                    CookieContainer = newCookieContainer;
+                }
+            }
         }
-        CookieContainer = newCookieContainer;
+        catch
+        {
+            // Fallback to old format (just cookies array)
+            var cookies = JsonConvert.DeserializeObject<List<Cookie>>(json);
+            if (cookies != null)
+            {
+                var newCookieContainer = new CookieContainer();
+                foreach (var cookie in cookies)
+                {
+                    if (cookie.Expires < DateTime.Now)
+                        cookie.Expires = DateTime.Now.AddYears(1);
+                    newCookieContainer.Add(cookie);
+                }
+                CookieContainer = newCookieContainer;
+            }
+        }
     }
-
-    public void UpdateCsrf(string csrf)
-    {
-        if (!string.IsNullOrEmpty(csrf))
-        {
-            Csrf = csrf;
-        }
-    }
-
-    [GeneratedRegex("window.csrf ='([a-f0-9-]+)'", RegexOptions.Compiled)]
-    private static partial Regex MyRegex();
 }
