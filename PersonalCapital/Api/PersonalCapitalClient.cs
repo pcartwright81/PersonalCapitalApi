@@ -12,8 +12,9 @@ namespace PersonalCapital.Api;
 public class PersonalCapitalClient : IDisposable
 {
     private const string BaseUrl = "https://pc-api.empower-retirement.com/";
+    private const string ParticipantBaseUrl = "https://ira.empower-retirement.com/";
     private const string BaseApiUrl = BaseUrl + "api/";
-
+    private readonly CookieContainer _cookieContainer = new();
     private readonly HttpClient _client;
     private readonly HttpClient _participantClient;
     private readonly HttpClientHandler _clientHandler;
@@ -32,7 +33,12 @@ public class PersonalCapitalClient : IDisposable
         };
         _client = new HttpClient(_clientHandler) { BaseAddress = new Uri(BaseApiUrl) };
         _sessionManager = new PersonalCapitalSessionManager(_client, _clientHandler.CookieContainer, BaseUrl);
-        _authenticator = new PersonalCapitalAuthenticator(_client, _sessionManager);
+        _participantClient = new HttpClient(_clientHandler)
+        {
+            BaseAddress = new Uri(ParticipantBaseUrl)
+        };
+
+        _authenticator = new PersonalCapitalAuthenticator(_client, _participantClient, _sessionManager);
 
         _participantClient = new HttpClient(_clientHandler)
         {
@@ -90,7 +96,7 @@ public class PersonalCapitalClient : IDisposable
             // Step 1: Login with username and password
             var authResponse = await _authenticator.Login(username, password);
 
-            // Step 2: Send 2FA challenge (accu should come from cookies after login)
+            // Step 2: Send 2FA challenge
             var sendSuccess = await _authenticator.SendTwoFactorChallenge(mode);
             if (!sendSuccess)
             {
@@ -106,16 +112,24 @@ public class PersonalCapitalClient : IDisposable
             }
 
             // Step 4: Verify 2FA code
-            var verifySuccess = await _authenticator.TwoFactorAuthenticate(mode, code);
+            var samlResponseData = await _authenticator.TwoFactorAuthenticate(code);
+            if (string.IsNullOrWhiteSpace(samlResponseData))
+            {
+                return false;
+            }
 
-            return verifySuccess;
+            // Step 5: Complete SSO to establish session on pc-api domain
+            var ssoSuccess = await _authenticator.CompleteSSO(samlResponseData);
+
+            return ssoSuccess;
         }
         catch (Exception ex)
         {
-            //_logger.LogError(ex, "Authentication failed");
+            Console.WriteLine(ex.Message);
             return false;
         }
     }
+
 
 
     public async Task<EmpowerApiResponse<T>> Fetch<T>(string url, object? data = null)

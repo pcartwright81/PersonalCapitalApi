@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace PersonalCapital.Api;
 
-public class PersonalCapitalAuthenticator(HttpClient client, PersonalCapitalSessionManager sessionManager)
+public class PersonalCapitalAuthenticator(HttpClient client, HttpClient participantClient, PersonalCapitalSessionManager sessionManager)
 {
     public async Task<AuthResponse> Login(string username, string password)
     {
@@ -97,58 +97,90 @@ public class PersonalCapitalAuthenticator(HttpClient client, PersonalCapitalSess
     public async Task<bool> SendTwoFactorChallenge(TwoFactorVerificationMode mode, string accu = "MYERIRA")
     {
         // Get available delivery options
-        var deliveryOptions = await GetDeliveryOptions();
+        var deliveryOptionsResponse = await GetDeliveryOptions();
 
         // Select the appropriate delivery option based on mode
         var deliveryOption = mode == TwoFactorVerificationMode.SMS
-            ? deliveryOptions.FirstOrDefault(d => d.StartsWith("sms:", StringComparison.OrdinalIgnoreCase))
-            : deliveryOptions.FirstOrDefault(d => d.StartsWith("email:", StringComparison.OrdinalIgnoreCase));
+            ? deliveryOptionsResponse.DeliverySet.FirstOrDefault(d => d.DeliveryType.StartsWith("sms:", StringComparison.OrdinalIgnoreCase))
+            : deliveryOptionsResponse.DeliverySet.FirstOrDefault(d => d.DeliveryType.StartsWith("email:", StringComparison.OrdinalIgnoreCase));
 
-        if (string.IsNullOrEmpty(deliveryOption))
+        if (deliveryOption == null)
         {
             throw new InvalidOperationException($"No {mode} delivery option available");
         }
 
-        var response = await client.PostAsJsonAsync(
-            "/rest/partialauth/mfa/createAndDeliverActivationCode",
+        var response = await participantClient.PostAsJsonAsync(
+            "participant-web-services/rest/partialauth/mfa/createAndDeliverActivationCode",
             new
             {
-                deliveryOption,
+                deliveryOption = deliveryOption.DeliveryType,
                 accu
             }
         );
 
+        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            if (errorContent.Contains("AUAC_12") || errorContent.Contains("Max number of activation challenges"))
+            {
+                throw new InvalidOperationException("Too many code requests. Please wait 15-30 minutes before trying again.");
+            }
+        }
+
+
         return response.IsSuccessStatusCode;
     }
 
-
-    public async Task<List<string>> GetDeliveryOptions()
+    public async Task<bool> CompleteSSO(string samlResponseData)
     {
-        var response = await client.GetAsync("/rest/partialauth/mfa/deliveryOptions");
+        // Post the SAML response directly to pc-api
+        var content = new MultipartFormDataContent
+    {
+        { new StringContent(samlResponseData), "SAMLResponse" }
+    };
+
+        var ssoResponse = await client.PostAsync("/empower/sso/saml2", content);
+
+        return ssoResponse.IsSuccessStatusCode;
+    }
+
+
+
+
+    public async Task<DeliveryOptionsResponse> GetDeliveryOptions()
+    {
+        var response = await participantClient.GetAsync("participant-web-services/rest/partialauth/mfa/deliveryOptions");
 
         if (!response.IsSuccessStatusCode)
         {
             throw new HttpRequestException($"Failed to get delivery options: {response.StatusCode}");
         }
 
-        var options = await response.Content.ReadFromJsonAsync<List<string>>();
-        return options ?? new List<string>();
+        var options = await response.Content.ReadFromJsonAsync<DeliveryOptionsResponse>();
+        return options ?? new DeliveryOptionsResponse();
     }
 
-    public async Task<bool> TwoFactorAuthenticate(
-        TwoFactorVerificationMode mode,
-        string verificationCode)
+
+    public async Task<string?> TwoFactorAuthenticate(string verificationCode, bool rememberDevice = true)
     {
-        var response = await client.PostAsJsonAsync(
-            "/rest/partialauth/mfa/verifycode",
+        var response = await participantClient.PostAsJsonAsync(
+            "participant-web-services/rest/partialauth/mfa/verifycode",
             new
             {
+                rememberDevice,
                 verificationCode,
-                deliveryOptions = mode.ToString().ToLower()
+                flowName = "mfa"
             }
         );
 
-        return response.IsSuccessStatusCode;
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        // The response contains the SAML data we need
+        var content = await response.Content.ReadAsStringAsync();
+        return content; // Return the whole response - it has the auth info
     }
 
 }
