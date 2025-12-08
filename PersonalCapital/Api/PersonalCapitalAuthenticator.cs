@@ -1,186 +1,205 @@
-﻿using PersonalCapital.Request;
+using PersonalCapital.Request;
 using PersonalCapital.Response;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace PersonalCapital.Api;
 
-public class PersonalCapitalAuthenticator(HttpClient client, HttpClient participantClient, PersonalCapitalSessionManager sessionManager)
+public class PersonalCapitalAuthenticator
 {
-    public async Task<AuthResponse> Login(string username, string password)
+    private readonly HttpClient _client;
+    private readonly PersonalCapitalSessionManager _sessionManager;
+    private string? _email;
+
+    public PersonalCapitalAuthenticator(HttpClient client, PersonalCapitalSessionManager sessionManager)
     {
-        await sessionManager.InitializeCsrf();
-        Console.WriteLine($"Initial CSRF: {sessionManager.Csrf}");
-
-        var authData = new AuthenticationData(
-           DeviceFingerPrint: "1a7c37451da15092050556ea76dea4f8",
-           UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
-           Language: "en-US",
-           HasLiedLanguages: false,
-           HasLiedResolution: false,
-           HasLiedOs: false,
-           HasLiedBrowser: false,
-           UserName: username,
-           Password: password,
-           FlowName: "mfa",
-           Accu: "MYERIRA",
-           RequestSrc: "empower_browser"
-       );
-
-        var httpMessage = await client.PostAsJsonAsync("auth/multiauth/noauth/authenticate", authData);
-        Console.WriteLine($"Login Response Status: {httpMessage.StatusCode}");
-
-        var responseContent = await httpMessage.Content.ReadAsStringAsync();
-        Console.WriteLine($"Login Response Body: {responseContent}");
-
-        var response = await httpMessage.Content.ReadAsAsync<AuthResponse>();
-        Console.WriteLine($"IdToken present: {!string.IsNullOrEmpty(response.IdToken)}");
-        Console.WriteLine($"Success: {response.Success}");
-
-        // Complete authentication with the idToken
-        if (!string.IsNullOrEmpty(response.IdToken))
-        {
-            Console.WriteLine("Calling AuthenticateToken...");
-            await AuthenticateToken(response.IdToken);
-            Console.WriteLine("AuthenticateToken completed");
-        }
-        else
-        {
-            Console.WriteLine("WARNING: No IdToken received from login!");
-        }
-
-        return response;
+        _client = client;
+        _sessionManager = sessionManager;
     }
 
-    private async Task AuthenticateToken(string idToken)
+    /// <summary>
+    /// Login using direct API authentication (no SAML)
+    /// </summary>
+    public async Task<bool> LoginAsync(string username, string password)
     {
-        Console.WriteLine($"AuthenticateToken - IdToken length: {idToken.Length}");
-
-        var tokenData = new
+        try
         {
-            deviceFingerPrint = "520cc91e9af663c4c590fff24c3bd777",
-            userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
-            language = "en-US",
-            hasLiedLanguages = false,
-            hasLiedResolution = false,
-            hasLiedOs = false,
-            hasLiedBrowser = false,
-            flowName = "mfa",
-            accu = "MYERIRA",
-            requestSrc = "empower_browser",
-            idToken,
-            authProvider = "EMPOWER"
-        };
+            Console.WriteLine("=== STEP 1: Initial Authentication ===");
 
-        var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://ira.empower-retirement.com/participant-web-services/rest/nonauth/authenticateToken")
-        {
-            Content = JsonContent.Create(tokenData)
-        };
+            var authData = new AuthenticationData(
+                DeviceFingerPrint: "1a7c37451da15092050556ea76dea4f8",
+                UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+                Language: "en-US",
+                HasLiedLanguages: false,
+                HasLiedResolution: false,
+                HasLiedOs: false,
+                HasLiedBrowser: false,
+                UserName: username,
+                Password: password,
+                FlowName: "mfa",
+                Accu: "MYERIRA",
+                RequestSrc: "empower_browser"
+            );
 
-        tokenRequest.Headers.Add("Origin", "https://ira.empower-retirement.com");
-        tokenRequest.Headers.Referrer = new Uri("https://ira.empower-retirement.com/participant/");
+            var authResponse = await _client.PostAsJsonAsync("api/auth/multiauth/noauth/authenticate", authData);
+            var authContent = await authResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"Status: {authResponse.StatusCode}");
 
-        var tokenResponse = await client.SendAsync(tokenRequest);
-        Console.WriteLine($"AuthenticateToken Response Status: {tokenResponse.StatusCode}");
-
-        var tokenResponseContent = await tokenResponse.Content.ReadAsStringAsync();
-        Console.WriteLine($"AuthenticateToken Response: {tokenResponseContent}");
-
-        tokenResponse.EnsureSuccessStatusCode();
-    }
-
-
-    public async Task<bool> SendTwoFactorChallenge(TwoFactorVerificationMode mode, string accu = "MYERIRA")
-    {
-        // Get available delivery options
-        var deliveryOptionsResponse = await GetDeliveryOptions();
-
-        // Select the appropriate delivery option based on mode
-        var deliveryOption = mode == TwoFactorVerificationMode.SMS
-            ? deliveryOptionsResponse.DeliverySet.FirstOrDefault(d => d.DeliveryType.StartsWith("sms:", StringComparison.OrdinalIgnoreCase))
-            : deliveryOptionsResponse.DeliverySet.FirstOrDefault(d => d.DeliveryType.StartsWith("email:", StringComparison.OrdinalIgnoreCase));
-
-        if (deliveryOption == null)
-        {
-            throw new InvalidOperationException($"No {mode} delivery option available");
-        }
-
-        var response = await participantClient.PostAsJsonAsync(
-            "participant-web-services/rest/partialauth/mfa/createAndDeliverActivationCode",
-            new
+            if (!authResponse.IsSuccessStatusCode)
             {
-                deliveryOption = deliveryOption.DeliveryType,
-                accu
+                Console.WriteLine($"Authentication failed: {authContent}");
+                return false;
             }
-        );
 
-        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-        {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            if (errorContent.Contains("AUAC_12") || errorContent.Contains("Max number of activation challenges"))
+            var authResult = JsonConvert.DeserializeObject<AuthResponse>(authContent);
+
+            if (authResult == null || !authResult.Success || string.IsNullOrEmpty(authResult.IdToken))
             {
-                throw new InvalidOperationException("Too many code requests. Please wait 15-30 minutes before trying again.");
+                Console.WriteLine($"No idToken received: {authContent}");
+                return false;
             }
-        }
 
+            Console.WriteLine($"✓ Received idToken (length: {authResult.IdToken.Length})");
 
-        return response.IsSuccessStatusCode;
-    }
+            // STEP 2: Token Authentication
+            Console.WriteLine("\n=== STEP 2: Token Authentication ===");
 
-    public async Task<bool> CompleteSSO(string samlResponseData)
-    {
-        // Post the SAML response directly to pc-api
-        var content = new MultipartFormDataContent
-    {
-        { new StringContent(samlResponseData), "SAMLResponse" }
-    };
+            var tokenRequest = new TokenAuthenticationRequest(authResult.IdToken);
 
-        var ssoResponse = await client.PostAsync("/empower/sso/saml2", content);
+            var tokenResponse = await _client.PostAsJsonAsync("api/credential/authenticateToken", tokenRequest);
+            var tokenContent = await tokenResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"Status: {tokenResponse.StatusCode}");
 
-        return ssoResponse.IsSuccessStatusCode;
-    }
+            var tokenResult = JsonConvert.DeserializeObject<AuthResponse>(tokenContent);
 
-
-
-
-    public async Task<DeliveryOptionsResponse> GetDeliveryOptions()
-    {
-        var response = await participantClient.GetAsync("participant-web-services/rest/partialauth/mfa/deliveryOptions");
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException($"Failed to get delivery options: {response.StatusCode}");
-        }
-
-        var options = await response.Content.ReadFromJsonAsync<DeliveryOptionsResponse>();
-        return options ?? new DeliveryOptionsResponse();
-    }
-
-
-    public async Task<string?> TwoFactorAuthenticate(string verificationCode, bool rememberDevice = true)
-    {
-        var response = await participantClient.PostAsJsonAsync(
-            "participant-web-services/rest/partialauth/mfa/verifycode",
-            new
+            if (tokenResult?.SpHeader == null)
             {
-                rememberDevice,
-                verificationCode,
-                flowName = "mfa"
+                Console.WriteLine($"No spHeader received: {tokenContent}");
+                return false;
             }
-        );
 
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
+            // Check for expected "Authorization required" error (code 200)
+            var authRequiredError = tokenResult.SpHeader.Errors
+                ?.FirstOrDefault(e => e.Code == 200 && (e.Message?.Contains("Authorization required") ?? false));
+
+            // Extract CSRF token
+            if (string.IsNullOrEmpty(tokenResult.SpHeader.Csrf))
+            {
+                Console.WriteLine("No CSRF token received");
+                return false;
+            }
+
+            _sessionManager.Csrf = tokenResult.SpHeader.Csrf;
+            Console.WriteLine($"✓ Received CSRF token: {_sessionManager.Csrf}");
+
+            // If already authenticated (no 2FA needed)
+            if (tokenResult.SpHeader.Success)
+            {
+                _email = username;
+                Console.WriteLine("✓ Already authenticated (no 2FA needed)");
+                return true;
+            }
+
+            // Verify we got the expected auth required error
+            if (authRequiredError == null)
+            {
+                Console.WriteLine($"Unexpected response: {tokenContent}");
+                return false;
+            }
+
+            // STEP 3: SMS Challenge
+            Console.WriteLine("\n=== STEP 3: SMS Challenge ===");
+            await SendSmsChallenge();
+
+            // STEP 4: Get and authenticate SMS code
+            Console.WriteLine("\n=== STEP 4: SMS Authentication ===");
+            Console.Write("Enter SMS code: ");
+            var smsCode = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(smsCode))
+            {
+                Console.WriteLine("SMS code is required");
+                return false;
+            }
+
+            await AuthenticateSmsCode(smsCode);
+
+            _email = username;
+            Console.WriteLine("\n✅ Login successful!");
+            return true;
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Login failed: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            return false;
+        }
+    }
 
-        // The response contains the SAML data we need
+    private async Task SendSmsChallenge()
+    {
+        var challengeRequest = new ChallengeSmsRequest(_sessionManager.Csrf!);
+
+        var response = await _client.PostAsJsonAsync("api/credential/challengeSmsFreemium", challengeRequest);
         var content = await response.Content.ReadAsStringAsync();
-        return content; // Return the whole response - it has the auth info
+
+        Console.WriteLine($"Status: {response.StatusCode}");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"SMS challenge failed: {content}");
+        }
+
+        var result = JsonConvert.DeserializeObject<AuthResponse>(content);
+
+        if (result?.SpHeader?.Success != true)
+        {
+            throw new Exception($"SMS challenge failed: {content}");
+        }
+
+        Console.WriteLine("✓ SMS code sent");
     }
 
+    private async Task AuthenticateSmsCode(string code)
+    {
+        var authSmsRequest = new AuthenticateSmsRequest(code, _sessionManager.Csrf!);
+
+        var response = await _client.PostAsJsonAsync("api/credential/authenticateSmsFreemium", authSmsRequest);
+        var content = await response.Content.ReadAsStringAsync();
+
+        Console.WriteLine($"Status: {response.StatusCode}");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"SMS authentication failed: {content}");
+        }
+
+        var result = JsonConvert.DeserializeObject<AuthResponse>(content);
+
+        if (result?.SpHeader?.Success != true)
+        {
+            throw new Exception($"SMS authentication failed: {content}");
+        }
+
+        // Update CSRF if provided
+        if (!string.IsNullOrEmpty(result.SpHeader.Csrf))
+        {
+            _sessionManager.Csrf = result.SpHeader.Csrf;
+        }
+
+        Console.WriteLine("✓ SMS authentication successful");
+        Console.WriteLine($"Auth Level: {result.SpHeader.AuthLevel}");
+        Console.WriteLine($"User Stage: {result.SpHeader.UserStage}");
+    }
+
+    public bool IsLoggedIn()
+    {
+        return !string.IsNullOrEmpty(_email) && !string.IsNullOrEmpty(_sessionManager.Csrf);
+    }
+
+    public string? GetEmail() => _email;
 }
