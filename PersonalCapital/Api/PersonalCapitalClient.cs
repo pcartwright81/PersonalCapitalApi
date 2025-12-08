@@ -1,4 +1,4 @@
-﻿using PersonalCapital.Extensions;
+using PersonalCapital.Extensions;
 using PersonalCapital.Request;
 using PersonalCapital.Response;
 using System;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace PersonalCapital.Api;
 
-public class PersonalCapitalClient : IDisposable
+public class PersonalCapitalClient : IPersonalCapitalClient
 {
     private const string BaseUrl = "https://pc-api.empower-retirement.com/";
     private const string ParticipantBaseUrl = "https://ira.empower-retirement.com/";
@@ -38,7 +38,7 @@ public class PersonalCapitalClient : IDisposable
             BaseAddress = new Uri(ParticipantBaseUrl)
         };
 
-        _authenticator = new PersonalCapitalAuthenticator(_client, _participantClient, _sessionManager);
+        _authenticator = new PersonalCapitalAuthenticator(_client, _sessionManager);
 
         _participantClient = new HttpClient(_clientHandler)
         {
@@ -86,42 +86,16 @@ public class PersonalCapitalClient : IDisposable
     /// <param name="mode">Two-factor verification mode (SMS or Email)</param>
     /// <returns>True if authentication was successful, false otherwise</returns>
     public async Task<bool> AuthenticateAsync(
-    string username,
-    string password,
-    Func<Task<string>> twoFactorCodeCallback,
-    TwoFactorVerificationMode mode = TwoFactorVerificationMode.SMS)
+        string username,
+        string password,
+        Func<Task<string>> twoFactorCodeCallback,
+        TwoFactorVerificationMode mode = TwoFactorVerificationMode.SMS)
     {
         try
         {
-            // Step 1: Login with username and password
-            var authResponse = await _authenticator.Login(username, password);
-
-            // Step 2: Send 2FA challenge
-            var sendSuccess = await _authenticator.SendTwoFactorChallenge(mode);
-            if (!sendSuccess)
-            {
-                return false;
-            }
-
-            // Step 3: Get 2FA code from callback
-            var code = await twoFactorCodeCallback();
-
-            if (string.IsNullOrWhiteSpace(code))
-            {
-                return false;
-            }
-
-            // Step 4: Verify 2FA code
-            var samlResponseData = await _authenticator.TwoFactorAuthenticate(code);
-            if (string.IsNullOrWhiteSpace(samlResponseData))
-            {
-                return false;
-            }
-
-            // Step 5: Complete SSO to establish session on pc-api domain
-            var ssoSuccess = await _authenticator.CompleteSSO(samlResponseData);
-
-            return ssoSuccess;
+            // Use the new direct API authentication
+            var success = await _authenticator.LoginAsync(username, password);
+            return success;
         }
         catch (Exception ex)
         {
@@ -130,12 +104,10 @@ public class PersonalCapitalClient : IDisposable
         }
     }
 
-
-
     public async Task<EmpowerApiResponse<T>> Fetch<T>(string url, object? data = null)
     {
         if (string.IsNullOrEmpty(_sessionManager.Csrf))
-            throw new InvalidOperationException("User is not logged in. Call Login() first");
+            throw new InvalidOperationException("User is not logged in. Call AuthenticateAsync() first");
 
         var payload = (data ?? new { }).ToDynamic();
         payload.lastServerChangeId = "-1";
