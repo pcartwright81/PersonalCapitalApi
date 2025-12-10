@@ -1,14 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿﻿using Newtonsoft.Json;
 using System.Collections.Generic;
 
-namespace PersonalCapital.Response
-{
-    public class CustomTags
-    {
-        [JsonProperty(PropertyName = "systemTags")]
-        public List<long> SystemTags { get; set; }
+namespace PersonalCapital.Response;
 
-        [JsonProperty(PropertyName = "userTags")]
-        public List<long> UserTags { get; set; }
-    }
-}
+public record CustomTags(
+    [property: JsonProperty(PropertyName = "systemTags")] List<long> SystemTags,
+    [property: JsonProperty(PropertyName = "userTags")] List<long> UserTags
+);

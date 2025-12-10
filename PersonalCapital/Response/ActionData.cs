@@ -1,23 +1,13 @@
 ﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Response
-{
-    public class ActionData
-    {
-        [JsonProperty(PropertyName = "key")] public string Key { get; set; }
+namespace PersonalCapital.Response;
 
-        [JsonProperty(PropertyName = "title")] public string Title { get; set; }
-
-        [JsonProperty(PropertyName = "url")] public string Url { get; set; }
-
-        [JsonProperty(PropertyName = "type")] public string Type { get; set; }
-
-        [JsonProperty(PropertyName = "Summary")]
-        public string Summary { get; set; }
-
-        [JsonProperty(PropertyName = "trackingFlag")]
-        public bool? TrackingFlag { get; set; }
-
-        [JsonProperty(PropertyName = "label")] public string Label { get; set; }
-    }
-}
+public record ActionData(
+    [property: JsonProperty("key")] string Key,
+    [property: JsonProperty("title")] string Title,
+    [property: JsonProperty("url")] string Url,
+    [property: JsonProperty("type")] string Type,
+    [property: JsonProperty("summary")] string Summary,
+    [property: JsonProperty("trackingFlag")] bool TrackingFlag,
+    [property: JsonProperty("label")] string Label
+);

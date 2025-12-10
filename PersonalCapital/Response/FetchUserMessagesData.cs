@@ -1,14 +1,9 @@
-﻿using System.Collections.Generic;
-using Newtonsoft.Json;
+﻿﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 
-namespace PersonalCapital.Response
-{
-    public class FetchUserMessagesData
-    {
-        [JsonProperty(PropertyName = "userMessages")]
-        public List<UserMessageData> UserMessages { get; set; }
+namespace PersonalCapital.Response;
 
-        [JsonProperty(PropertyName = "enabled")]
-        public bool Enabled { get; set; }
-    }
-}
+public record FetchUserMessagesData(
+    [property: JsonProperty(PropertyName = "userMessages")] List<UserMessageData> UserMessages,
+    [property: JsonProperty(PropertyName = "enabled")] bool Enabled
+);

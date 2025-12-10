@@ -1,12 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿﻿﻿﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Response
-{
-    public class CredentialInfo
-    {
-        [JsonProperty(PropertyName = "status")]
-        public string Status { get; set; }
+namespace PersonalCapital.Response;
 
-        [JsonProperty(PropertyName = "name")] public string Name { get; set; }
-    }
-}
+public record CredentialInfo(
+    [property: JsonProperty(PropertyName = "status")] string Status,
+    [property: JsonProperty(PropertyName = "name")] string Name
+);

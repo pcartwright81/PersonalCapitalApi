@@ -1,293 +1,186 @@
-﻿using Newtonsoft.Json.Linq;
-using PersonalCapital.Exceptions;
 using PersonalCapital.Extensions;
 using PersonalCapital.Request;
 using PersonalCapital.Response;
 using System;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
-namespace PersonalCapital.Api
+namespace PersonalCapital.Api;
+
+public class PersonalCapitalClient : IPersonalCapitalClient
 {
-    [SuppressMessage("ReSharper", "UnusedMember.Global")]
-    public class PersonalCapitalClient :  IDisposable
+    private const string BaseUrl = "https://pc-api.empower-retirement.com/";
+    private const string ParticipantBaseUrl = "https://ira.empower-retirement.com/";
+    private const string BaseApiUrl = BaseUrl + "api/";
+    private readonly CookieContainer _cookieContainer = new();
+    private readonly HttpClient _client;
+    private readonly HttpClient _participantClient;
+    private readonly HttpClientHandler _clientHandler;
+    private readonly PersonalCapitalSessionManager _sessionManager;
+    private readonly PersonalCapitalAuthenticator _authenticator;
+    private readonly string _sessionFilePath;
+
+    public PersonalCapitalClient(string sessionFilePath, bool useFiddlerProxy)
     {
-        private const string BaseUrl = "https://pc-api.empower-retirement.com/";
-        private const string BaseApiUrl = BaseUrl + "api/";
-
-        private readonly HttpClient _client;
-        private readonly HttpClientHandler _clientHandler;
-        private readonly Regex _csrfRegex = new Regex("window.csrf ='([a-f0-9-]+)'", RegexOptions.Compiled);
-
-        public PersonalCapitalClient()
+        _clientHandler = new HttpClientHandler
         {
-            _clientHandler = new HttpClientHandler {UseCookies = true, CookieContainer = new CookieContainer() };
-            _client = new HttpClient(_clientHandler) {BaseAddress = new Uri(BaseApiUrl)};
-        }
-
-        public CookieContainer CookieContainer
+            Proxy = new WebProxy("http://127.0.0.1:8888"), // Fiddler's default port
+            UseProxy = useFiddlerProxy,
+            UseCookies = true,
+            CookieContainer = new CookieContainer()
+        };
+        _client = new HttpClient(_clientHandler) { BaseAddress = new Uri(BaseApiUrl) };
+        _sessionManager = new PersonalCapitalSessionManager(_client, _clientHandler.CookieContainer, BaseUrl);
+        _participantClient = new HttpClient(_clientHandler)
         {
-            get => _clientHandler.CookieContainer;
-            set
-            {
-                if (_clientHandler.CookieContainer != value) _clientHandler.CookieContainer = value;
-            }
-        }
+            BaseAddress = new Uri(ParticipantBaseUrl)
+        };
 
-        public string Csrf { get; protected set; }
+        _authenticator = new PersonalCapitalAuthenticator(_client, _sessionManager);
 
-        public void Dispose()
+        _participantClient = new HttpClient(_clientHandler)
         {
-            _client?.Dispose();
-            _clientHandler?.Dispose();
-        }
+            BaseAddress = new Uri(BaseUrl)
+        };
 
-        public void PersistSession(string filename)
+        SetupHeaders(_client);
+        SetupHeaders(_participantClient);
+        _sessionFilePath = sessionFilePath;
+    }
+
+    public CookieContainer CookieContainer
+    {
+        get => _clientHandler.CookieContainer;
+        private set => _clientHandler.CookieContainer = value;
+    }
+
+    public string Csrf => _sessionManager.Csrf;
+
+    public void Dispose()
+    {
+        _client.Dispose();
+        _participantClient.Dispose();
+        _clientHandler.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    public void PersistSession()
+    {
+        _sessionManager.PersistSession(_sessionFilePath);
+    }
+
+    public void RestoreSession()
+    {
+        _sessionManager.RestoreSession(_sessionFilePath);
+        CookieContainer = _sessionManager.CookieContainer;
+    }
+
+    /// <summary>
+    /// Authenticates with Personal Capital using the complete flow including 2FA
+    /// </summary>
+    /// <param name="username">Personal Capital username/email</param>
+    /// <param name="password">Personal Capital password</param>
+    /// <param name="twoFactorCodeCallback">Callback function to retrieve the 2FA code from the user</param>
+    /// <param name="mode">Two-factor verification mode (SMS or Email)</param>
+    /// <returns>True if authentication was successful, false otherwise</returns>
+    public async Task<bool> AuthenticateAsync(
+        string username,
+        string password,
+        Func<Task<string>> twoFactorCodeCallback,
+        TwoFactorVerificationMode mode = TwoFactorVerificationMode.SMS)
+    {
+        try
         {
-            byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(CookieContainer.GetAllCookies());
-            File.WriteAllBytes(filename, bytes);
+            // Use the new direct API authentication
+            var success = await _authenticator.LoginAsync(username, password);
+            return success;
         }
-
-        public void RestoreSession(string filename)
+        catch (Exception ex)
         {
-            byte[] bytes = File.ReadAllBytes(filename);
-            var cookieCollection = JsonSerializer.Deserialize<CookieCollection>(bytes);
-            foreach (var cookie in cookieCollection) 
-            { 
-                var x = (Cookie)cookie;
-                if(x.Expires < DateTime.Now)
-                {
-                    x.Expires = DateTime.Now.AddYears(1);
-                }
-            }
-
-            CookieContainer = new CookieContainer();
-            CookieContainer.Add(cookieCollection);
+            Console.WriteLine(ex.Message);
+            return false;
         }
-#pragma warning restore SYSLIB0011
-        public async Task<IdentifyUserResponse> Login(string username, string password,
-            CookieContainer sessionCookies = null)
+    }
+
+    public async Task<EmpowerApiResponse<T>> Fetch<T>(string url, object? data = null)
+    {
+        if (string.IsNullOrEmpty(_sessionManager.Csrf))
+            throw new InvalidOperationException("User is not logged in. Call AuthenticateAsync() first");
+
+        var payload = (data ?? new { }).ToDynamic();
+        payload.lastServerChangeId = "-1";
+        payload.csrf = _sessionManager.Csrf;
+        payload.apiClient = "WEB";
+
+        var httpMessage = await _client.PostMultipartData(url, (object)payload);
+        httpMessage.EnsureSuccessStatusCode();
+        var response = await httpMessage.Content.ReadAsAsync<EmpowerApiResponse<T>>();
+#if DEBUG
+        if (response.Header.AuthLevel == Constants.AuthLevel.None)
         {
-            if (sessionCookies != null) CookieContainer = sessionCookies;
-
-            var initialCsrf = await GetCsrfFromHomepage();
-            Csrf = initialCsrf;
-            //var userResponse = await IdentifyUser(username, initialCsrf);
-
-            //if (string.IsNullOrEmpty(userResponse?.Header?.Csrf) || string.IsNullOrEmpty(userResponse.Header?.AuthLevel)
-            //) throw new Exception("Unable to identify user");
-            //ParseHeaderForErrors(userResponse.Header);
-
-            //if (userResponse.Header.AuthLevel != Constants.AuthLevel.UserRemembered)
-            //    throw new RequireTwoFactorException();
-            var authenticationResponse = await AuthenticatePassword(username, password);
-            ParseHeaderForErrors(authenticationResponse.Header);
-            return authenticationResponse;
-            // If we got here, the user is valid, but isn't remembered by PersonalCapital
-            // therefore, the client will need to complete two-factor authentication
+            throw new UnauthorizedAccessException("The session is not authenticated");
         }
+#endif
+        return response;
+    }
 
-        public async Task<string> GetCsrfFromHomepage()
-        {
-            var httpMessage = await _client.GetAsync(BaseUrl);
-            var result = await httpMessage.Content.ReadAsStringAsync();
-            try
-            {
-                return _csrfRegex.Match(result).Groups[1].Captures[0].Value;
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                return null;
-            }
-        }
-               
-        public async Task<IdentifyUserResponse> IdentifyUser(string username, string initialCsrf)
-        {
-            Csrf = initialCsrf;
-            return null;
-            var data = new IdentifyUserRequest
-            {
-                Username = username,
-                Csrf = initialCsrf
-            };
+    #region Mapped Fetch/Get Api Methods
 
-            var httpMessage = await _client.PostHttpEncodedData("login/identifyUser", data);
-            var response = await httpMessage.Content.ReadAsAsync<IdentifyUserResponse>();
-            if (!string.IsNullOrEmpty(response?.Header?.Csrf)) Csrf = response.Header.Csrf;
-            return response;
-        }
+    public Task<EmpowerApiResponse<FetchAccountsData>> FetchAccounts(object? data = null)
+    {
+        return Fetch<FetchAccountsData>(@"newaccount/getAccounts2", data);
+    }
 
-        public async Task<HeaderOnlyResponse> SendTwoFactorChallenge(TwoFactorVerificationMode mode)
-        {
-            if (string.IsNullOrEmpty(Csrf))
-                throw new Exception("CSRF not set; Identify user before sending two factor challenge");
+    public Task<EmpowerApiResponse<List<CategoryData>>> FetchCategories(object? data = null)
+    {
+        return Fetch<List<CategoryData>>(@"transactioncategory/getCategories", data);
+    }
 
-            string challengeType;
-            string method;
+    public Task<EmpowerApiResponse<FetchUserMessagesData>> FetchUserMessages(object? data = null)
+    {
+        return Fetch<FetchUserMessagesData>(@"message/getUserMessages", data);
+    }
 
-            switch (mode)
-            {
-                case TwoFactorVerificationMode.SMS:
-                    challengeType = "challengeSMS";
-                    method = "challengeSms";
-                    break;
-                case TwoFactorVerificationMode.EMail:
-                    method = challengeType = "challengeEmail";
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
-            }
+    public Task<EmpowerApiResponse<FetchPersonData>> FetchPerson(object? data = null)
+    {
+        return Fetch<FetchPersonData>(@"person/getPerson", data);
+    }
 
-            var data = new TwoFactorChallengeRequest
-            {
-                ChallengeReason = "DEVICE_AUTH",
-                ChallengeMethod = "OP",
-                ChallengeType = challengeType,
-                Csrf = Csrf
-            };
+    public Task<EmpowerApiResponse<FetchUserTransactionsData>> FetchUserTransactions(FetchUserTransactionsRequest data)
+    {
+        return Fetch<FetchUserTransactionsData>(@"transaction/getUserTransactions", data);
+    }
 
-            var httpMessage = await _client.PostHttpEncodedData($"credential/{method}", data);
-            return await httpMessage.Content.ReadAsAsync<HeaderOnlyResponse>();
-        }
+    public Task<EmpowerApiResponse<UpdateTransactionResponseData>> UpdateTransaction(UpdateTransactionRequest data)
+    {
+        return Fetch<UpdateTransactionResponseData>(@"transaction/updateUserTransactions2", data);
+    }
 
-        public async Task<HeaderOnlyResponse> TwoFactorAuthenticate(TwoFactorVerificationMode mode, string code)
-        {
-            if (string.IsNullOrEmpty(Csrf))
-                throw new Exception("CSRF not set; Identify user before authenticating two factor challenge");
+    public Task<EmpowerApiResponse<List<BillReminderData>>> FetchBills()
+    {
+        return Fetch<List<BillReminderData>>(@"account/getBillReminders");
+    }
 
-            var method = mode switch
-            {
-                TwoFactorVerificationMode.SMS => "authenticateSms",
-                TwoFactorVerificationMode.EMail => "authenticateEmail",
-                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-            };
+    public Task<EmpowerApiResponse<List<FetchTagsData>>> FetchTags()
+    {
+        return Fetch<List<FetchTagsData>>(@"transactiontag/getTags");
+    }
 
-            var data = new TwoFactorAuthenticationRequest
-            {
-                Code = int.Parse(code),
-                ChallengeReason = "DEVICE_AUTH",
-                ChallengeMethod = "OP",
-                Csrf = Csrf
-            };
+    #endregion
 
-            var httpMessage = await _client.PostHttpEncodedData($"credential/{method}", data);
-            return await httpMessage.Content.ReadAsAsync<HeaderOnlyResponse>();
-        }
-
-        public async Task<IdentifyUserResponse> AuthenticatePassword(string username, string password)
-        {
-            var authData = new AuthenticationData
-            {
-                DeviceFingerPrint = "1a7c37451da15092050556ea76dea4f8",
-                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
-                Language = "en-US",
-                HasLiedLanguages = false,
-                HasLiedResolution = false,
-                HasLiedOs = false,
-                HasLiedBrowser = false,
-                UserName = username,
-                Password = password,
-                FlowName = "mfa",
-                Accu = "MYERIRA"
-            };
-
-            var httpMessage = await _client.PostAsJsonAsync("auth/multiauth/noauth/authenticate", authData);
-            return await httpMessage.Content.ReadAsAsync<IdentifyUserResponse>();
-        }
-
-        public async Task<T> Fetch<T>(string url, object data = null)
-        {
-            if (string.IsNullOrEmpty(Csrf)) throw new Exception("CSRF not set; Log in before calling Fetch");
-
-            var payload = (data ?? new { }).ToDynamic();
-            // Set required values
-            payload.lastServerChangeId = "-1";
-            payload.csrf = Csrf;
-            payload.apiClient = "WEB";
-            // Send data as HTTP Encoded
-            var httpMessage = await _client.PostHttpEncodedData(url, (object) payload);
-            // Parse into type expected
-            var conent = await httpMessage.Content.ReadAsStringAsync();
-            return await httpMessage.Content.ReadAsAsync<T>();
-        }
-
-        public async Task<dynamic> Fetch(string url, object data = null)
-        {
-            if (string.IsNullOrEmpty(Csrf)) throw new Exception("CSRF not set; Log in before calling Fetch");
-
-            var payload = (data ?? new { }).ToDynamic();
-            // Set required values
-            payload.lastServerChangeId = "-1";
-            payload.csrf = Csrf;
-            payload.apiClient = "WEB";
-            // Send data as HTTP Encoded
-            var httpMessage = await _client.PostHttpEncodedData(url, (object) payload);
-            // Return raw JSON as a dynamic object
-            return JObject.Parse(await httpMessage.Content.ReadAsStringAsync());
-        }
-
-        private static void ParseHeaderForErrors(HeaderResponse header)
-        {
-            if (header == null) return;
-            // Check that the user is active
-            if (header.Status != Constants.Status.Active) throw new UnknownUserException();
-            // Check for any errors that can be handled
-            if (header.Errors == null) return;
-            foreach (var error in header.Errors)
-                switch (error.Code)
-                {
-                    case 312: // Incorrect password entered
-                        throw new IncorrectPasswordException(error.Message);
-                }
-        }
-
-        #region Mapped Fetch/Get Api Methods
-
-        public Task<FetchAccountsResponse> FetchAccounts(object data = null)
-        {
-            return Fetch<FetchAccountsResponse>(@"newaccount\getAccounts2", data);
-        }
-
-        public Task<FetchCategoriesResponse> FetchCategories(object data = null)
-        {
-            return Fetch<FetchCategoriesResponse>(@"transactioncategory\getCategories", data);
-        }
-
-        public Task<FetchUserMessagesResponse> FetchUserMessages(object data = null)
-        {
-            return Fetch<FetchUserMessagesResponse>(@"message/getUserMessages", data);
-        }
-
-        public Task<FetchPersonResponse> FetchPerson(object data = null)
-        {
-            return Fetch<FetchPersonResponse>(@"person/getPerson", data);
-        }
-
-        public Task<FetchUserTransactionsResponse> FetchUserTransactions(FetchUserTransactionsRequest data)
-        {
-            return Fetch<FetchUserTransactionsResponse>(@"transaction/getUserTransactions", data);
-        }
-
-        public Task<UpdateTransactionResponse> UpdateTransaction(UpdateTransactionRequest data)
-        {
-            return Fetch<UpdateTransactionResponse>(@"transaction/updateUserTransactions2", data);
-        }
-
-        public Task<BillReminderResponse> FetchBills()
-        {
-            return Fetch<BillReminderResponse>(@"account/getBillReminders", null);
-        }
-
-        public Task<FetchTagsResponse> FetchTags()
-        {
-            return Fetch<FetchTagsResponse>(@"transactiontag/getTags", null);
-        }
-
-        #endregion
+    private static void SetupHeaders(HttpClient client)
+    {
+        client.DefaultRequestHeaders.Referrer = new Uri("https://participant.empower-retirement.com/");
+        client.DefaultRequestHeaders.Add("Origin", "https://participant.empower-retirement.com");
+        client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36");
+        client.DefaultRequestHeaders.Add("Accept", "application/json, text/plain, */*");
+        client.DefaultRequestHeaders.Add("sec-ch-ua", "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"");
+        client.DefaultRequestHeaders.Add("sec-ch-ua-mobile", "?0");
+        client.DefaultRequestHeaders.Add("sec-ch-ua-platform", "\"Windows\"");
+        client.DefaultRequestHeaders.Add("sec-fetch-dest", "empty");
+        client.DefaultRequestHeaders.Add("sec-fetch-mode", "cors");
+        client.DefaultRequestHeaders.Add("sec-fetch-site", "same-site");
     }
 }

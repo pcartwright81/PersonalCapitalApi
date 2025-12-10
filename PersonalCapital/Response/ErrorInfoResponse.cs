@@ -1,21 +1,14 @@
-﻿using Newtonsoft.Json;
+﻿﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Response
-{
-    public class ErrorInfoResponse
-    {
-        [JsonProperty(PropertyName = "code")] public int Code { get; set; }
+namespace PersonalCapital.Response;
 
-        [JsonProperty(PropertyName = "message")]
-        public string Message { get; set; }
+public record ErrorInfoResponse(
+    [property: JsonProperty(PropertyName = "code")] int Code,
+    [property: JsonProperty(PropertyName = "message")] string Message
+    //[JsonProperty(PropertyName = "details")]
+    //public List<ErrorDetailsResponse> Details { get; set; }
+);
 
-        //[JsonProperty(PropertyName = "details")]
-        //public List<ErrorDetailsResponse> Details { get; set; }
-    }
-
-    public class ErrorDetailsResponse
-    {
-        [JsonProperty(PropertyName = "fieldname")]
-        public int FieldName { get; set; }
-    }
-}
+public record ErrorDetailsResponse(
+    [property: JsonProperty(PropertyName = "fieldname")] int FieldName
+);

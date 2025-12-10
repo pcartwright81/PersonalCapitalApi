@@ -1,9 +1,8 @@
-﻿namespace PersonalCapital.Exceptions
+﻿namespace PersonalCapital.Exceptions;
+
+public class UnknownUserException : PersonalCapitalException
 {
-    public class UnknownUserException : PersonalCapitalException
+    public UnknownUserException() : base("Supplied user is inactive")
     {
-        public UnknownUserException() : base("Supplied user is inactive")
-        {
-        }
     }
 }

@@ -1,10 +1,8 @@
 ﻿using Newtonsoft.Json;
 
-namespace PersonalCapital.Request
-{
-    public class IdentifyUserRequest : BaseRequest
-    {
-        [JsonProperty(PropertyName = "username")]
-        public string Username { get; set; }
-    }
-}
+namespace PersonalCapital.Request;
+
+public record IdentifyUserRequest(
+    string Csrf,
+    [property: JsonProperty("username")] string Username
+) : BaseRequest(Csrf);
